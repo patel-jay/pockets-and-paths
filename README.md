@@ -64,6 +64,10 @@ npm run build
 
 The unit suite covers currency support, parsing, spending positions, grouped currency balances, and relative seed dates. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including viewer isolation, ownership checks, budget-currency inheritance, mutations, database reads, and overspending. A browser smoke test verifies the primary sign-in and budgeting flow.
 
+## AI-assisted development
+
+Codex was used as an implementation partner while product scope and architectural decisions remained human-directed. Agent-generated changes were reviewed through typed boundaries, unit and integration tests, browser checks, security auditing, and production builds; key steering decisions included removing ambiguous currency conversion and preserving existing data during schema evolution.
+
 ## Data and currency model
 
 Money is stored as integer minor units, never as floating-point values. A budget selects its currency when it is created; expenses do not accept a separate currency or exchange rate. The profile’s default currency only preselects new budget forms. On the dashboard, balances are summed only when their currency matches and are displayed as separate groups.

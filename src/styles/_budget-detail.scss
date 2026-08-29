@@ -18,9 +18,10 @@
 
   h1 {
     margin: 5px 0 0;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-size: clamp(30px, 4vw, 46px);
-    letter-spacing: -0.04em;
+    font-weight: 750;
+    letter-spacing: -0.03em;
   }
 }
 
@@ -50,8 +51,10 @@
     font-weight: 700;
   }
   strong {
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-numeric);
     font-size: 22px;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-weight: 750;
   }
 }
 
@@ -115,8 +118,10 @@
     pointer-events: none;
 
     strong {
-      font-family: Georgia, 'Times New Roman', serif;
+      font-family: var(--font-numeric);
       font-size: 24px;
+      font-variant-numeric: tabular-nums lining-nums;
+      font-weight: 750;
     }
     small {
       color: var(--ink-soft);
@@ -247,8 +252,9 @@
 
   h2 {
     margin: 5px 0 0;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-size: 22px;
+    font-weight: 750;
   }
   p:last-child {
     max-width: 500px;

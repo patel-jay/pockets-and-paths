@@ -11,10 +11,11 @@
 
   h1 {
     margin: 4px 0 0;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-size: clamp(27px, 3vw, 38px);
+    font-weight: 750;
     line-height: 1.05;
-    letter-spacing: -0.035em;
+    letter-spacing: -0.025em;
   }
 }
 
@@ -146,9 +147,12 @@
   }
 
   strong {
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-numeric);
     font-size: clamp(28px, 3.7vw, 38px);
-    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
   }
 }
 
@@ -215,9 +219,10 @@
 
   h2 {
     margin: 5px 0 0;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-size: clamp(23px, 2.5vw, 29px);
-    letter-spacing: -0.025em;
+    font-weight: 750;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -258,8 +263,9 @@
 
   h3 {
     margin: 18px 0 3px;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-size: 21px;
+    font-weight: 750;
     letter-spacing: -0.02em;
 
     a {
@@ -345,7 +351,9 @@
 
   strong {
     color: var(--ink);
+    font-family: var(--font-numeric);
     font-size: 18px;
+    font-variant-numeric: tabular-nums lining-nums;
   }
 }
 
@@ -535,8 +543,9 @@
   }
 
   h1 {
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-size: clamp(30px, 5vw, 46px);
+    font-weight: 750;
     letter-spacing: -0.04em;
   }
 

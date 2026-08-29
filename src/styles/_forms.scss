@@ -48,8 +48,9 @@
 
   h2 {
     margin: 5px 0 0;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-size: 29px;
+    font-weight: 750;
     letter-spacing: -0.03em;
   }
   p:last-child {
