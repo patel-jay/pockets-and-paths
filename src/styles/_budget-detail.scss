@@ -1,5 +1,6 @@
 .back-link {
   display: inline-flex;
+  min-height: 44px;
   align-items: center;
   gap: 6px;
   margin-bottom: 24px;
@@ -47,7 +48,7 @@
 
   span {
     color: var(--ink-soft);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
   }
   strong {
@@ -89,10 +90,11 @@
   padding: 13px 26px;
   border-top: 1px solid rgba(24, 51, 48, 0.08);
   background: rgba(207, 225, 215, 0.22);
-  font-size: 11px;
+  font-size: 12px;
 
   small {
     color: var(--ink-soft);
+    font-size: 12px;
   }
 }
 
@@ -125,7 +127,7 @@
     }
     small {
       color: var(--ink-soft);
-      font-size: 10px;
+      font-size: 12px;
     }
   }
 }
@@ -153,7 +155,7 @@
     small,
     .category-status {
       color: var(--ink-soft);
-      font-size: 10px;
+      font-size: 12px;
     }
   }
 }
@@ -166,8 +168,8 @@
 
 .category-edit {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 0;
   border-radius: 9px;
@@ -190,7 +192,7 @@
   padding: 10px 26px;
   color: var(--danger);
   background: var(--danger-soft);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 

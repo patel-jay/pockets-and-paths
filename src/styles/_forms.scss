@@ -46,6 +46,10 @@
   gap: 18px;
   margin-bottom: 24px;
 
+  .icon-button {
+    flex: none;
+  }
+
   h2 {
     margin: 5px 0 0;
     font-family: var(--font-display);
@@ -82,7 +86,7 @@
   }
   small {
     color: var(--ink-soft);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
   }
 }
@@ -146,7 +150,7 @@
   }
   small {
     color: var(--ink-soft);
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 

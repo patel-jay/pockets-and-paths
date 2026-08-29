@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CircleDollarSign,
   Home,
@@ -8,7 +8,7 @@ import {
   Settings,
   WalletCards,
 } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
 import { useDashboard } from '../lib/queries';
 import type { AppOutletContext } from '../lib/app-actions';
 import { useAuth } from '../lib/auth-context';
@@ -32,11 +32,16 @@ function initials(name?: string) {
 
 export function AppShell() {
   const { logout } = useAuth();
+  const location = useLocation();
   const dashboard = useDashboard();
   const profile = dashboard.data?.dashboard.profile;
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [preferredBudgetId, setPreferredBudgetId] = useState<string>();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
 
   const openExpense = (budgetId?: string) => {
     setPreferredBudgetId(budgetId);

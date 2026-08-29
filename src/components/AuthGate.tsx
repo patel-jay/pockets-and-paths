@@ -28,6 +28,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!loading) window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [loading, profile]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       profile,
