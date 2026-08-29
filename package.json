@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "npm run db:migrate:local && vite",
     "build": "tsc --noEmit && vite build",
@@ -10,9 +13,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:integration": "playwright test tests/integration",
+    "test:e2e": "playwright test tests/e2e",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "db:migrate:local": "wrangler d1 migrations apply pockets-and-paths --local"
   },
   "dependencies": {
@@ -23,8 +28,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router": "^8.3.0",
-    "recharts": "^3.10.1",
-    "zod": "^4.4.3"
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.54.1",
@@ -32,15 +36,12 @@
     "@eslint/js": "^10.0.1",
     "@openai/sites-vite-plugin": "^0.2.0",
     "@playwright/test": "^1.62.1",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^16.3.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "eslint": "^10.9.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.5",
-    "jsdom": "^30.0.1",
     "prettier": "^3.9.6",
     "sass": "^1.103.1",
     "typescript": "^5.9.3",

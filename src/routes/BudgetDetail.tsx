@@ -15,6 +15,7 @@ import {
 import { formatBudgetPeriod, formatMoney, parseMajorToMinor } from '../lib/money';
 import { queryKeys, useBudget, useProfile } from '../lib/queries';
 import type { Category } from '../types/app';
+import type { CreateCategoryInput } from '../types/inputs';
 
 const categoryColors = ['#2e7064', '#e8795d', '#d1a64c', '#6382a8', '#8774a8'];
 
@@ -28,8 +29,7 @@ export function BudgetDetailPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formError, setFormError] = useState('');
   const mutation = useMutation({
-    mutationFn: (input: Record<string, unknown>) =>
-      graphqlRequest(createCategoryMutation, { input }),
+    mutationFn: (input: CreateCategoryInput) => graphqlRequest(createCategoryMutation, { input }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.budget(budgetId) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.budgets });

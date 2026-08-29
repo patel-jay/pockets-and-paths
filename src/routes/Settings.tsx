@@ -7,6 +7,7 @@ import { graphqlRequest, updateProfileMutation } from '../lib/graphql';
 import { supportedCurrencies } from '../lib/money';
 import { useProfile } from '../lib/queries';
 import { useAuth } from '../lib/auth-context';
+import type { UpdateProfileInput } from '../types/inputs';
 
 export function SettingsPage() {
   const { logout, reset } = useAuth();
@@ -22,8 +23,7 @@ export function SettingsPage() {
     }
   }, [saved]);
   const mutation = useMutation({
-    mutationFn: (input: Record<string, unknown>) =>
-      graphqlRequest(updateProfileMutation, { input }),
+    mutationFn: (input: UpdateProfileInput) => graphqlRequest(updateProfileMutation, { input }),
     onSuccess: async () => {
       await queryClient.invalidateQueries();
       setSaved(true);

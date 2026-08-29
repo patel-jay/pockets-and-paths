@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, CircleDollarSign, Route } from 'lucide-react';
 import { createBudgetMutation, graphqlRequest } from '../lib/graphql';
 import { parseMajorToMinor, supportedCurrencies, todayIso } from '../lib/money';
+import type { CreateBudgetInput } from '../types/inputs';
 import { Modal } from './Modal';
 
 type Props = { open: boolean; onClose: () => void };
@@ -13,7 +14,7 @@ export function CreateBudgetModal({ open, onClose }: Props) {
   const [currency, setCurrency] = useState('INR');
   const [error, setError] = useState('');
   const mutation = useMutation({
-    mutationFn: (input: Record<string, unknown>) => graphqlRequest(createBudgetMutation, { input }),
+    mutationFn: (input: CreateBudgetInput) => graphqlRequest(createBudgetMutation, { input }),
     onSuccess: async () => {
       await queryClient.invalidateQueries();
       onClose();

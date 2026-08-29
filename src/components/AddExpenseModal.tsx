@@ -5,6 +5,7 @@ import { addExpenseMutation, graphqlRequest, previewExpenseMutation } from '../l
 import { formatMoney, parseMajorToMinor, supportedCurrencies, todayIso } from '../lib/money';
 import { useBudgets } from '../lib/queries';
 import type { ExpenseImpact } from '../types/app';
+import type { AddExpenseInput, ExpenseImpactInput } from '../types/inputs';
 import { ErrorState, LoadingState } from './AsyncState';
 import { Modal } from './Modal';
 
@@ -25,15 +26,14 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
   const selectedCurrency = currency || selectedBudget?.reportingCurrency || 'INR';
 
   const mutation = useMutation({
-    mutationFn: (input: Record<string, unknown>) => graphqlRequest(addExpenseMutation, { input }),
+    mutationFn: (input: AddExpenseInput) => graphqlRequest(addExpenseMutation, { input }),
     onSuccess: async () => {
       await queryClient.invalidateQueries();
       onClose();
     },
   });
   const previewMutation = useMutation({
-    mutationFn: (input: Record<string, unknown>) =>
-      graphqlRequest<{ previewExpense: ExpenseImpact }>(previewExpenseMutation, { input }),
+    mutationFn: (input: ExpenseImpactInput) => graphqlRequest(previewExpenseMutation, { input }),
   });
 
   const submit = (event: FormEvent<HTMLFormElement>) => {

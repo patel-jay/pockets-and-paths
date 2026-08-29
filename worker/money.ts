@@ -29,7 +29,7 @@ export function referenceRateMicros(from: string, to: string): number {
   const target = valueInInr[targetCode];
 
   if (!source || !target) {
-    throw new Error(`No reference rate is available for ${sourceCode}/${targetCode}.`);
+    throw new DomainError(`No reference rate is available for ${sourceCode}/${targetCode}.`);
   }
 
   return Math.round((source / target) * 1_000_000);
@@ -38,13 +38,13 @@ export function referenceRateMicros(from: string, to: string): number {
 export function decimalRateToMicros(value: string): number {
   const normalized = value.trim();
   if (!/^\d+(\.\d{1,6})?$/.test(normalized)) {
-    throw new Error('Exchange rate must be a positive decimal with at most 6 places.');
+    throw new DomainError('Exchange rate must be a positive decimal with at most 6 places.');
   }
 
   const [whole, fraction = ''] = normalized.split('.');
   const micros = Number(whole) * 1_000_000 + Number(fraction.padEnd(6, '0'));
   if (!Number.isSafeInteger(micros) || micros <= 0) {
-    throw new Error('Exchange rate is outside the supported range.');
+    throw new DomainError('Exchange rate is outside the supported range.');
   }
 
   return micros;
@@ -64,8 +64,9 @@ export function convertMinorUnits(
   const result = Number(rounded);
 
   if (!Number.isSafeInteger(result)) {
-    throw new Error('Converted amount is outside the supported range.');
+    throw new DomainError('Converted amount is outside the supported range.');
   }
 
   return result;
 }
+import { DomainError } from './errors';

@@ -7,7 +7,6 @@ import {
   graphqlRequest,
   profileQuery,
 } from './graphql';
-import type { Budget, DashboardData, Expense, Profile } from '../types/app';
 
 export const queryKeys = {
   dashboard: ['dashboard'] as const,
@@ -20,21 +19,21 @@ export const queryKeys = {
 export function useDashboard() {
   return useQuery({
     queryKey: queryKeys.dashboard,
-    queryFn: () => graphqlRequest<DashboardData>(dashboardQuery),
+    queryFn: () => graphqlRequest(dashboardQuery),
   });
 }
 
 export function useBudgets() {
   return useQuery({
     queryKey: queryKeys.budgets,
-    queryFn: () => graphqlRequest<{ budgets: Budget[] }>(budgetsQuery),
+    queryFn: () => graphqlRequest(budgetsQuery),
   });
 }
 
 export function useBudget(id: string) {
   return useQuery({
     queryKey: queryKeys.budget(id),
-    queryFn: () => graphqlRequest<{ budget: Budget | null }>(budgetQuery, { id }),
+    queryFn: () => graphqlRequest(budgetQuery, { id }),
     enabled: Boolean(id),
   });
 }
@@ -42,13 +41,13 @@ export function useBudget(id: string) {
 export function useExpenses() {
   return useQuery({
     queryKey: queryKeys.expenses,
-    queryFn: () => graphqlRequest<{ expenses: Expense[] }>(expensesQuery),
+    queryFn: () => graphqlRequest(expensesQuery),
   });
 }
 
 export function useProfile() {
   return useQuery({
     queryKey: queryKeys.profile,
-    queryFn: () => graphqlRequest<{ profile: Profile }>(profileQuery),
+    queryFn: () => graphqlRequest(profileQuery),
   });
 }

@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
 type ModalProps = {
@@ -10,36 +10,58 @@ type ModalProps = {
 };
 
 export function Modal({ open, title, description, onClose, children }: ModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+  const descriptionId = useId();
+
   useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!open || !dialog) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    dialog.showModal();
     document.body.classList.add('modal-open');
+    window.requestAnimationFrame(() => {
+      const firstControl = dialog.querySelector<HTMLElement>(
+        '[autofocus], input:not([type="hidden"]), select, textarea, button',
+      );
+      firstControl?.focus();
+    });
+
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
+      if (dialog.open) dialog.close();
       document.body.classList.remove('modal-open');
+      previouslyFocused?.focus();
     };
-  }, [onClose, open]);
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <div className="modal-layer" role="presentation" onMouseDown={onClose}>
-      <section
-        className="modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        aria-describedby="modal-description"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
+    <dialog
+      ref={dialogRef}
+      className="modal-layer"
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
+      onCancel={(event) => {
+        event.preventDefault();
+        onCloseRef.current();
+      }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCloseRef.current();
+      }}
+    >
+      <section className="modal-card" onMouseDown={(event) => event.stopPropagation()}>
         <header className="modal-card__header">
           <div>
             <p className="eyebrow">Pockets & Paths</p>
-            <h2 id="modal-title">{title}</h2>
-            <p id="modal-description">{description}</p>
+            <h2 id={titleId}>{title}</h2>
+            <p id={descriptionId}>{description}</p>
           </div>
           <button className="icon-button" type="button" aria-label="Close" onClick={onClose}>
             <X size={20} />
@@ -47,6 +69,6 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
         </header>
         {children}
       </section>
-    </div>
+    </dialog>
   );
 }

@@ -1,13 +1,14 @@
-import { createYoga } from 'graphql-yoga';
-import { ensureDatabase, ensureViewer, getProfile, resetViewer, viewerExists } from './database';
-import { schema } from './schema';
+import { GraphQLError } from 'graphql';
+import { createYoga, maskError } from 'graphql-yoga';
+import { ensureViewer, getProfile, resetViewer, viewerExists } from './data';
+import { DomainError } from './errors';
+import { schema } from './graphql/schema';
 import type { Env, RequestContext } from './types';
 
 const SESSION_COOKIE = 'pp_session';
 const AUTH_COOKIE = 'pp_demo_auth';
 const DEMO_EMAIL = 'demo@pocketsandpaths.app';
 const DEMO_PASSWORD = 'pathfinder';
-let databaseReady: Promise<void> | undefined;
 
 function readCookie(request: Request, name: string): string | null {
   const cookie = request.headers.get('cookie') ?? '';
@@ -42,19 +43,24 @@ function sameOrigin(request: Request): boolean {
   return !origin || origin === new URL(request.url).origin;
 }
 
-async function prepareDatabase(env: Env): Promise<void> {
-  databaseReady ??= ensureDatabase(env.DB).catch((error) => {
-    databaseReady = undefined;
-    throw error;
-  });
-  await databaseReady;
-}
-
 const yoga = createYoga<RequestContext>({
   schema,
   graphqlEndpoint: '/graphql',
   graphiql: false,
-  maskedErrors: true,
+  maskedErrors: {
+    maskError: (error, message, isDev) => {
+      const graphQLError = error instanceof GraphQLError ? error : null;
+      const originalError = graphQLError?.originalError ?? error;
+      if (originalError instanceof DomainError) {
+        return new GraphQLError(originalError.message, {
+          nodes: graphQLError?.nodes,
+          path: graphQLError?.path,
+          extensions: { code: originalError.code },
+        });
+      }
+      return maskError(error, message, isDev);
+    },
+  },
 });
 
 export default {
@@ -66,7 +72,6 @@ export default {
     }
 
     if (url.pathname === '/api/auth/session' && request.method === 'GET') {
-      await prepareDatabase(env);
       const viewerId = readSessionId(request);
       const authenticated = readCookie(request, AUTH_COOKIE) === '1';
       if (!viewerId || !authenticated || !(await viewerExists(env.DB, viewerId))) {
@@ -87,7 +92,6 @@ export default {
     if (url.pathname === '/api/auth/demo-login' && request.method === 'POST') {
       if (!sameOrigin(request))
         return json({ error: 'Cross-origin request rejected.' }, { status: 403 });
-      await prepareDatabase(env);
       let credentials: { email?: string; password?: string };
       try {
         credentials = (await request.json()) as { email?: string; password?: string };
@@ -136,7 +140,6 @@ export default {
     if (url.pathname === '/api/auth/reset' && request.method === 'POST') {
       if (!sameOrigin(request))
         return json({ error: 'Cross-origin request rejected.' }, { status: 403 });
-      await prepareDatabase(env);
       const viewerId = readSessionId(request);
       if (!viewerId || readCookie(request, AUTH_COOKIE) !== '1') {
         return json({ error: 'Sign in to reset the demo.' }, { status: 401 });
@@ -146,7 +149,6 @@ export default {
     }
 
     if (url.pathname === '/graphql') {
-      await prepareDatabase(env);
       const viewerId = readSessionId(request);
       if (!viewerId || readCookie(request, AUTH_COOKIE) !== '1') {
         return json({ errors: [{ message: 'Sign in to continue.' }] }, { status: 401 });

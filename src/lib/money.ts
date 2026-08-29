@@ -77,6 +77,7 @@ export function formatBudgetPeriod(
   return `${formatDate(startDate, locale)} – ${endDate ? formatDate(endDate, locale) : 'Open ended'}`;
 }
 
-export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+export function todayIso(now = new Date()): string {
+  const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return localTime.toISOString().slice(0, 10);
 }

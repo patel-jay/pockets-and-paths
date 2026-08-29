@@ -6,6 +6,8 @@ import { AppShell } from './components/AppShell';
 import { AuthGate } from './components/AuthGate';
 import { LoadingState } from './components/AsyncState';
 import { Dashboard } from './routes/Dashboard';
+import { NotFoundPage } from './routes/NotFound';
+import { RouteErrorPage } from './routes/RouteError';
 import './styles/globals.scss';
 
 const BudgetsPage = lazy(() =>
@@ -29,12 +31,14 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <AppShell />,
+    errorElement: <RouteErrorPage />,
     children: [
       { index: true, element: <Dashboard /> },
       { path: 'budgets', element: deferred(<BudgetsPage />) },
       { path: 'budgets/:budgetId', element: deferred(<BudgetDetailPage />) },
       { path: 'expenses', element: deferred(<ExpensesPage />) },
       { path: 'settings', element: deferred(<SettingsPage />) },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]);

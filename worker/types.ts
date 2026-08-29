@@ -9,6 +9,48 @@ export interface RequestContext {
 }
 
 export type BudgetType = 'MONTHLY' | 'TEMPORARY';
+export type BudgetStatus = 'ACTIVE' | 'ARCHIVED';
+
+export interface CreateBudgetInput {
+  name: string;
+  type: BudgetType;
+  reportingCurrency: string;
+  amountMinor: string;
+  startDate: string;
+  endDate?: string | null;
+}
+
+export interface CreateCategoryInput {
+  budgetId: string;
+  name: string;
+  limitMinor?: string | null;
+  color: string;
+}
+
+export interface UpdateCategoryLimitInput {
+  categoryId: string;
+  limitMinor?: string | null;
+}
+
+export interface ExpenseImpactInput {
+  budgetId: string;
+  categoryId: string;
+  amountMinor: string;
+  currency: string;
+  exchangeRate?: string | null;
+}
+
+export interface AddExpenseInput extends ExpenseImpactInput {
+  title: string;
+  expenseDate: string;
+  notes?: string | null;
+}
+
+export interface UpdateProfileInput {
+  displayName: string;
+  baseCurrency: string;
+  locale: string;
+}
 
 export interface ProfileRow {
   viewer_id: string;
@@ -28,7 +70,7 @@ export interface BudgetRow {
   profile_rate_micros: number;
   start_date: string;
   end_date: string | null;
-  status: string;
+  status: BudgetStatus;
   created_at: string;
   spent_minor?: number;
   allocated_minor?: number;

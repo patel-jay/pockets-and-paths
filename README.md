@@ -1,8 +1,13 @@
 # Pockets & Paths
 
+[![CI](https://github.com/patel-jay/pockets-and-paths/actions/workflows/ci.yml/badge.svg)](https://github.com/patel-jay/pockets-and-paths/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2e7064.svg)](LICENSE)
+
 A multi-currency budget planner for everyday life and temporary journeys.
 
 Pockets & Paths lets one person run a recurring monthly plan alongside any number of fixed-date budgets for trips, events, relocations, or other temporary chapters. Expenses keep the currency that was actually paid while each budget reports in its chosen currency.
+
+![Pockets & Paths dashboard showing concurrent monthly and temporary budgets](docs/images/dashboard.png)
 
 ## Product highlights
 
@@ -21,7 +26,7 @@ Pockets & Paths lets one person run a recurring monthly plan alongside any numbe
 - GraphQL Yoga on a Cloudflare Worker
 - Cloudflare D1 (SQLite) with prepared statements and migrations
 - Recharts, Sass, Lucide icons
-- Vitest, ESLint, GitHub Actions
+- Vitest, Playwright, ESLint, Prettier, GitHub Actions
 
 ```mermaid
 flowchart LR
@@ -42,14 +47,22 @@ npm run dev
 
 Open `http://127.0.0.1:4173`. The development command applies pending D1 migrations before starting. Sign in with `demo@pocketsandpaths.app` and password `pathfinder`; the Worker seeds a realistic monthly budget plus a temporary Japan budget for each isolated browser session.
 
+Seed dates are generated relative to the current month, so a newly reset demo always opens with a current monthly plan and an upcoming temporary journey.
+
 Useful commands:
 
 ```bash
+npm run format:check
 npm run typecheck
 npm run lint
 npm test
+npx playwright install chromium
+npm run test:integration
+npm run test:e2e
 npm run build
 ```
+
+The unit suite covers money conversion, parsing, spending positions, and relative seed dates. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including viewer isolation, ownership checks, mutations, database reads, and overspending. A browser smoke test verifies the primary sign-in and budgeting flow.
 
 ## Data and currency model
 
@@ -66,7 +79,7 @@ The repository is configured for a Cloudflare Worker with D1, but no production 
 3. Apply the checked-in migrations to the target database.
 4. Build and deploy the Worker through Cloudflare.
 
-See [architecture](docs/architecture.md), [product decisions](docs/product-decisions.md), and [security notes](docs/security.md) for the reasoning behind the implementation.
+See [architecture](docs/architecture.md), [product decisions](docs/product-decisions.md), and [security notes](docs/security.md) for the reasoning behind the implementation. The project is available under the [MIT License](LICENSE).
 
 ## Current scope
 
