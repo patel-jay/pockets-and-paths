@@ -63,7 +63,7 @@ export function BudgetDetailPage() {
       mutation.mutate({
         budgetId,
         name: String(form.get('name')).trim(),
-        limitMinor: limit ? parseMajorToMinor(limit, budget.reportingCurrency) : null,
+        limitMinor: limit ? parseMajorToMinor(limit, budget.currency) : null,
         color: String(form.get('color')),
       });
     } catch (caught) {
@@ -90,7 +90,7 @@ export function BudgetDetailPage() {
           <h1>{budget.name}</h1>
           <p>
             {formatBudgetPeriod(budget.startDate, budget.endDate, budget.type, locale)} ·{' '}
-            {budget.reportingCurrency}
+            {budget.currency}
           </p>
         </div>
         <button className="primary-button" type="button" onClick={() => openExpense(budget.id)}>
@@ -113,7 +113,7 @@ export function BudgetDetailPage() {
           <strong>
             {formatMoney(
               budget.isOverBudget ? budget.overspent.minor : budget.remaining.minor,
-              budget.reportingCurrency,
+              budget.currency,
               locale,
             )}
           </strong>
@@ -170,8 +170,8 @@ export function BudgetDetailPage() {
               <input
                 name="limit"
                 inputMode="decimal"
-                placeholder={`Optional limit in ${budget.reportingCurrency}`}
-                aria-label={`Optional limit in ${budget.reportingCurrency}`}
+                placeholder={`Optional limit in ${budget.currency}`}
+                aria-label={`Optional limit in ${budget.currency}`}
               />
               <select name="color" aria-label="Category color">
                 {categoryColors.map((color) => (
@@ -221,9 +221,7 @@ export function BudgetDetailPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) =>
-                      formatMoney(String(value), budget.reportingCurrency, locale)
-                    }
+                    formatter={(value) => formatMoney(String(value), budget.currency, locale)}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -300,7 +298,7 @@ export function BudgetDetailPage() {
         <CategoryLimitModal
           category={editingCategory}
           budgetId={budget.id}
-          currency={budget.reportingCurrency}
+          currency={budget.currency}
           open
           onClose={() => setEditingCategory(null)}
         />

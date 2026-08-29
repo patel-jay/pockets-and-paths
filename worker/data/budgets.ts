@@ -1,6 +1,5 @@
-import { referenceRateMicros } from '../money';
 import { DomainError } from '../errors';
-import type { BudgetRow, CreateBudgetInput, ProfileRow } from '../types';
+import type { BudgetRow, CreateBudgetInput } from '../types';
 import { requireCurrency, requireIsoDate, requirePositiveMinor, requireText } from './validation';
 
 const defaultCategoryColors = ['#2e7064', '#e8795d', '#d1a64c', '#6382a8', '#8774a8'];
@@ -47,14 +46,8 @@ export async function createBudget(
   viewerId: string,
   input: CreateBudgetInput,
 ): Promise<BudgetRow> {
-  const profile = await db
-    .prepare('SELECT * FROM profiles WHERE viewer_id = ?')
-    .bind(viewerId)
-    .first<ProfileRow>();
-  if (!profile) throw new Error('Profile was not found.');
-
   const amountMinor = requirePositiveMinor(input.amountMinor, 'Budget amount');
-  const reportingCurrency = requireCurrency(input.reportingCurrency);
+  const currency = requireCurrency(input.currency);
   const name = requireText(input.name, 'Budget name', 60);
   const startDate = requireIsoDate(input.startDate, 'Start date');
   const endDate = input.endDate ? requireIsoDate(input.endDate, 'End date') : null;
@@ -78,18 +71,7 @@ export async function createBudget(
         profile_rate_micros, start_date, end_date, status, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?)`,
     )
-    .bind(
-      id,
-      viewerId,
-      name,
-      input.type,
-      reportingCurrency,
-      amountMinor,
-      referenceRateMicros(reportingCurrency, profile.base_currency),
-      startDate,
-      endDate,
-      now,
-    )
+    .bind(id, viewerId, name, input.type, currency, amountMinor, 1_000_000, startDate, endDate, now)
     .run();
 
   const defaultCategories =

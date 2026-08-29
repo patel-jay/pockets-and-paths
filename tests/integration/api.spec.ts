@@ -36,7 +36,7 @@ const budgetsQuery = `
     budgets {
       id
       name
-      reportingCurrency
+      currency
       amount { minor currency }
       spent { minor currency }
       progress
@@ -71,7 +71,7 @@ test('keeps each browser viewer isolated across database queries and mutations',
         input: {
           name: uniqueName,
           type: 'MONTHLY',
-          reportingCurrency: 'INR',
+          currency: 'INR',
           amountMinor: '250000',
           startDate: '2031-01-01',
           endDate: null,
@@ -123,7 +123,6 @@ test('rejects a category owned by another viewer', async ({ playwright }) => {
           budgetId: ownBudgetId,
           categoryId: foreignCategoryId,
           amountMinor: '10000',
-          currency: 'INR',
         },
       },
     );
@@ -142,7 +141,7 @@ test('previews and records an expense beyond the overall budget', async ({ playw
     await login(api);
     await reset(api);
     const initial = await graphql<{
-      budgets: { id: string; categories: { id: string }[] }[];
+      budgets: { id: string; currency: string; categories: { id: string }[] }[];
     }>(api, budgetsQuery);
     const budget = initial.data!.budgets[0];
     const input = {
@@ -150,8 +149,6 @@ test('previews and records an expense beyond the overall budget', async ({ playw
       categoryId: budget.categories[0].id,
       title: 'Emergency rebooking',
       amountMinor: '50000000',
-      currency: 'INR',
-      exchangeRate: null,
       expenseDate: '2031-01-15',
       notes: 'Integration test expense',
     };
@@ -160,8 +157,6 @@ test('previews and records an expense beyond the overall budget', async ({ playw
       budgetId: input.budgetId,
       categoryId: input.categoryId,
       amountMinor: input.amountMinor,
-      currency: input.currency,
-      exchangeRate: input.exchangeRate,
     };
     const preview = await graphql<{
       previewExpense: { budgetWillOverspend: boolean; budgetOverspent: { minor: string } };
@@ -182,18 +177,28 @@ test('previews and records an expense beyond the overall budget', async ({ playw
     expect(preview.data?.previewExpense.budgetWillOverspend).toBe(true);
     expect(Number(preview.data?.previewExpense.budgetOverspent.minor)).toBeGreaterThan(0);
 
-    const added = await graphql<{ addExpense: { id: string } }>(
+    const added = await graphql<{
+      addExpense: { id: string; amount: { minor: string; currency: string } };
+    }>(
       api,
       `
         mutation AddIntegrationExpense($input: AddExpenseInput!) {
           addExpense(input: $input) {
             id
+            amount {
+              minor
+              currency
+            }
           }
         }
       `,
       { input },
     );
     expect(added.errors).toBeUndefined();
+    expect(added.data?.addExpense.amount).toEqual({
+      minor: input.amountMinor,
+      currency: budget.currency,
+    });
 
     const updated = await graphql<{
       budgets: {

@@ -2,11 +2,11 @@
 
 ## Monthly life and temporary journeys are peers
 
-A trip does not pause rent, groceries, or subscriptions. The model therefore lets monthly and temporary budgets run concurrently. The dashboard combines what remains, while every expense still belongs to one clear plan.
+A trip does not pause rent, groceries, or subscriptions. The model therefore lets monthly and temporary budgets run concurrently. The dashboard shows what remains by currency, while every expense still belongs to one clear plan.
 
-## Reporting currency belongs to a budget
+## One currency belongs to a budget
 
-A traveler may keep their profile in INR, plan Japan in JPY, and pay a booking deposit in EUR. The original payment is preserved, but progress is computed in the budget’s reporting currency. This makes each plan understandable on its own and still allows a profile-level summary.
+A traveler can keep a monthly plan in INR while planning Japan in JPY. Every expense within a budget uses that budget’s currency, which removes hidden rate assumptions from entry, progress, and overspending. The profile currency is only a default for new budgets, and the dashboard keeps unlike currencies separate.
 
 ## Temporary is broader than travel
 
@@ -26,7 +26,7 @@ A budget cannot prevent a payment that happened in the real world. The app previ
 
 ## What is intentionally postponed
 
-- Live rates: correctness requires a provider, timestamps, fallback behavior, and disclosure.
+- Cross-currency expenses: correctness requires explicit conversion timing, rate sources, edits, and disclosure.
 - Bank sync: high integration and security cost for little value in validating the core model.
 - Sharing: roles and permissions deserve their own design rather than a superficial toggle.
 - Full offline writes: a durable queue needs conflict rules and clear synchronization feedback.

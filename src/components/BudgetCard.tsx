@@ -25,7 +25,7 @@ export function BudgetCard({ budget, locale = 'en-IN' }: { budget: Budget; local
       </h3>
       <p className="budget-card__meta">
         {formatBudgetPeriod(budget.startDate, budget.endDate, budget.type, locale)} ·{' '}
-        {budget.reportingCurrency}
+        {budget.currency}
       </p>
       <div className="budget-card__numbers">
         <span>

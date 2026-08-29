@@ -1,5 +1,3 @@
-import { referenceRateMicros } from '../money';
-
 type SeedCategory = {
   id: string;
   name: string;
@@ -161,7 +159,7 @@ export async function seedViewer(
         'TEMPORARY',
         'JPY',
         320_000,
-        referenceRateMicros('JPY', 'INR'),
+        1_000_000,
         timeline.tripStart,
         timeline.tripEnd,
         timestamp,

@@ -1,4 +1,3 @@
-import { referenceRateMicros } from '../money';
 import type { ProfileRow, UpdateProfileInput } from '../types';
 import { seedViewer } from './seed';
 import { requireCurrency, requireLocale, requireText } from './validation';
@@ -36,27 +35,17 @@ export async function updateProfile(
   viewerId: string,
   input: UpdateProfileInput,
 ): Promise<ProfileRow> {
-  const currency = requireCurrency(input.baseCurrency);
+  const currency = requireCurrency(input.defaultCurrency);
   const displayName = requireText(input.displayName, 'Display name', 60);
   const locale = requireLocale(input.locale);
-  const { results: budgets } = await db
-    .prepare('SELECT id, reporting_currency FROM budgets WHERE viewer_id = ?')
-    .bind(viewerId)
-    .all<{ id: string; reporting_currency: string }>();
 
-  await db.batch([
-    db
-      .prepare(
-        `UPDATE profiles SET display_name = ?, base_currency = ?, locale = ?
-         WHERE viewer_id = ?`,
-      )
-      .bind(displayName, currency, locale, viewerId),
-    ...budgets.map((budget) =>
-      db
-        .prepare('UPDATE budgets SET profile_rate_micros = ? WHERE id = ? AND viewer_id = ?')
-        .bind(referenceRateMicros(budget.reporting_currency, currency), budget.id, viewerId),
-    ),
-  ]);
+  await db
+    .prepare(
+      `UPDATE profiles SET display_name = ?, base_currency = ?, locale = ?
+       WHERE viewer_id = ?`,
+    )
+    .bind(displayName, currency, locale, viewerId)
+    .run();
 
   return getProfile(db, viewerId);
 }

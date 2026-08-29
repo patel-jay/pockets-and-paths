@@ -99,12 +99,11 @@
 .summary-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 32px;
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
   min-height: 190px;
   align-items: center;
-  padding: 34px 38px;
+  padding: 30px 34px;
   border-radius: 25px;
   color: #f9faf6;
   background: linear-gradient(110deg, rgba(255, 255, 255, 0.04), transparent 50%), var(--forest);
@@ -112,9 +111,7 @@
 }
 
 .summary-card__label,
-.summary-card__note,
-.summary-card__metric span,
-.summary-card__metric small {
+.summary-card__note {
   color: rgba(255, 255, 255, 0.64);
 }
 
@@ -128,48 +125,59 @@
   font-weight: 700;
 }
 
-.summary-card__value {
-  margin: 10px 0 8px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(38px, 6vw, 58px);
-  letter-spacing: -0.045em;
+.summary-card__balances {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 12px 0 10px;
+
+  > article {
+    display: grid;
+    min-height: 96px;
+    align-content: space-between;
+    gap: 8px;
+    padding: 14px 17px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(6px);
+  }
+
+  strong {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(28px, 3.7vw, 38px);
+    letter-spacing: -0.035em;
+  }
+}
+
+.summary-card__balance-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  span {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+  }
+
+  small {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 10px;
+  }
+}
+
+.summary-card__overage {
+  color: #ffd6ca;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .summary-card__note {
   font-size: 12px;
-}
-
-.summary-card__warning {
-  width: fit-content;
-  margin: 14px 0 0;
-  padding: 6px 9px;
-  border-radius: 8px;
-  color: #ffd6ca;
-  background: rgba(232, 121, 93, 0.15);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.summary-card__metric {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 5px;
-  min-width: 190px;
-  padding: 18px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 17px;
-  background: rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(8px);
-
-  span,
-  small {
-    font-size: 11px;
-  }
-
-  strong {
-    font-size: 24px;
-  }
 }
 
 .summary-card__path {

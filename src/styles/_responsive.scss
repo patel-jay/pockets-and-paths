@@ -105,8 +105,8 @@
     padding: 28px;
   }
 
-  .summary-card__metric {
-    width: min(100%, 260px);
+  .summary-card__balances {
+    grid-template-columns: 1fr;
   }
 
   .budget-grid {

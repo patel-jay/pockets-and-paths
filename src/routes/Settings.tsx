@@ -40,7 +40,7 @@ export function SettingsPage() {
     const form = new FormData(event.currentTarget);
     mutation.mutate({
       displayName: String(form.get('displayName')).trim(),
-      baseCurrency: String(form.get('baseCurrency')),
+      defaultCurrency: String(form.get('defaultCurrency')),
       locale: String(form.get('locale')),
     });
   };
@@ -76,7 +76,7 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="Your defaults"
         title="Settings"
-        copy="Choose how totals and dates are presented across your plans."
+        copy="Choose the defaults used when you create new plans."
       />
       <section className="settings-card">
         <form className="form-stack" onSubmit={submit}>
@@ -91,13 +91,13 @@ export function SettingsPage() {
           </label>
           <div className="form-row">
             <label className="form-field form-field--grow">
-              <span>Profile currency</span>
-              <select name="baseCurrency" defaultValue={profile.data.profile.baseCurrency}>
+              <span>Default budget currency</span>
+              <select name="defaultCurrency" defaultValue={profile.data.profile.defaultCurrency}>
                 {supportedCurrencies.map((currency) => (
                   <option key={currency}>{currency}</option>
                 ))}
               </select>
-              <small>Combined totals are converted into this currency.</small>
+              <small>New budgets start with this currency; existing budgets stay unchanged.</small>
             </label>
             <label className="form-field form-field--grow">
               <span>Date and number format</span>

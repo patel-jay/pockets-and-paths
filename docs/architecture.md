@@ -10,26 +10,26 @@ The Worker creates a browser-specific UUID after the published dummy credentials
 
 ## Domain model
 
-- A profile defines display name, locale, and the currency used for combined totals.
-- A budget is either `MONTHLY` or `TEMPORARY` and owns a reporting currency.
+- A profile defines display name, locale, and the default currency for new budgets.
+- A budget is either `MONTHLY` or `TEMPORARY` and owns one currency.
 - A temporary budget requires start and end dates; a monthly budget remains independent of temporary plans.
 - A category belongs to exactly one budget and may carry an allocation limit.
 - An expense belongs to exactly one budget and one of that budget’s categories.
-- An expense stores original minor units, original currency, integer exchange-rate micros, and converted minor units.
+- An expense stores integer minor units in its parent budget’s currency.
 
 ## Important boundaries
 
 ### Money
 
-Amounts cross GraphQL as strings because JavaScript numbers cannot safely represent every integer. Parsing and conversion use `BigInt` at the boundary; D1 receives only safe integers. This avoids familiar `0.1 + 0.2` accounting errors.
+Amounts cross GraphQL as strings because JavaScript numbers cannot safely represent every integer. Parsing uses `BigInt` at the boundary; D1 receives only safe integers. This avoids familiar `0.1 + 0.2` accounting errors.
 
-### Exchange rates
+### Currency boundaries
 
-The demo rate table is deliberately isolated in `worker/money.ts`. A live provider can later write timestamped rates without changing expense history. Historical expenses retain the applied rate and converted result.
+Currency belongs to the budget, not the individual expense. The expense input deliberately has no currency or rate fields, and the Worker derives currency from the selected budget. Dashboard summaries group matching currencies and never imply that unrelated balances can be added directly.
 
 ### Spending position
 
-An expense can exceed a category or overall budget because the ledger represents money that was actually spent. A server-side preview calculates the converted amount and projected category/budget position before insertion. The client warns without blocking. Percentages remain uncapped, while remaining and overspent values are modeled separately.
+An expense can exceed a category or overall budget because the ledger represents money that was actually spent. A server-side preview calculates the projected category/budget position before insertion. The client warns without blocking. Percentages remain uncapped, while remaining and overspent values are modeled separately.
 
 Categories without limits have no progress, remaining, or overspent values. They still contribute to overall budget spending. Category limits may under- or over-allocate the overall budget; both states are reported rather than rejected.
 
@@ -41,10 +41,12 @@ Checked-in SQL migrations are the schema source of truth. Local development appl
 
 Migration `0002` adds the nullable category-limit representation alongside the original required column. This additive approach preserves existing rows and avoids rebuilding a table referenced by historical expenses. New writes keep the compatibility column synchronized while all product reads use the optional value.
 
+Migration `0003` enforces the one-currency-per-budget invariant for new and updated expenses. Earlier conversion columns remain only as additive-schema compatibility fields; current writes mirror the budget amount with a neutral rate, while GraphQL exposes one expense amount and no rate controls.
+
 ### Testing
 
 Vitest covers deterministic domain calculations and relative seed timelines. Playwright API tests run against the real local Worker and D1 database to exercise authentication boundaries, viewer-scoped queries, ownership checks, GraphQL mutations, and overspending. A separate browser test covers the main portfolio journey without letting Playwright collect the unit-test files.
 
 ## Production evolution
 
-The next production steps would be external identity, rate limiting and account recovery, rate-provider ingestion with timestamps, pagination, structured observability, and background synchronization for queued offline expenses.
+The next production steps would be external identity, rate limiting and account recovery, pagination, structured observability, and background synchronization for queued offline expenses. Cross-currency spending would require an explicit product design before adding a rate provider.

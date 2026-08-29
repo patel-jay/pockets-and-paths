@@ -16,8 +16,7 @@ export function Dashboard() {
     return <ErrorState message={query.error.message} retry={() => query.refetch()} />;
   if (!query.data) return null;
 
-  const { profile, available, overspent, activeBudgets, recentExpenses } = query.data.dashboard;
-  const monthly = activeBudgets.find((budget) => budget.type === 'MONTHLY');
+  const { profile, balances, activeBudgets, recentExpenses } = query.data.dashboard;
   const firstName = profile.displayName.split(' ')[0];
   const dateLabel = new Intl.DateTimeFormat(profile.locale, {
     weekday: 'long',
@@ -41,32 +40,32 @@ export function Dashboard() {
       <section className="summary-card" aria-labelledby="summary-title">
         <div>
           <p className="summary-card__label" id="summary-title">
-            Available across active budgets
+            Remaining by currency
           </p>
-          <p className="summary-card__value">
-            {formatMoney(available.minor, available.currency, profile.locale)}
-          </p>
-          <p className="summary-card__note">
-            Converted to your profile currency using each budget’s saved reference rate
-          </p>
-          {Number(overspent.minor) > 0 && (
-            <p className="summary-card__warning">
-              {formatMoney(overspent.minor, overspent.currency, profile.locale)} overspent across
-              active budgets
-            </p>
-          )}
-        </div>
-        {monthly && (
-          <div className="summary-card__metric">
-            <span>Spent in your monthly plan</span>
-            <strong>
-              {formatMoney(monthly.spent.minor, monthly.spent.currency, profile.locale)}
-            </strong>
-            <small>
-              {Math.round(monthly.progress)}% of {monthly.name}
-            </small>
+          <div className="summary-card__balances">
+            {balances.map((balance) => (
+              <article key={balance.currency}>
+                <div className="summary-card__balance-heading">
+                  <span>{balance.currency}</span>
+                  <small>
+                    {balance.budgetCount} active {balance.budgetCount === 1 ? 'budget' : 'budgets'}
+                  </small>
+                </div>
+                <strong>
+                  {formatMoney(balance.remaining.minor, balance.currency, profile.locale)}
+                </strong>
+                {Number(balance.overspent.minor) > 0 && (
+                  <small className="summary-card__overage">
+                    {formatMoney(balance.overspent.minor, balance.currency, profile.locale)} over
+                  </small>
+                )}
+              </article>
+            ))}
           </div>
-        )}
+          <p className="summary-card__note">
+            Balances stay in their budget currencies—no exchange-rate estimates.
+          </p>
+        </div>
         <div className="summary-card__path" aria-hidden="true">
           <span />
           <Compass size={24} />

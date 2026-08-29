@@ -1,5 +1,5 @@
-import { referenceRateMicros } from '../money';
 import { DomainError } from '../errors';
+import { isSupportedBudgetCurrency } from '../money';
 
 export function requireText(value: string, label: string, maxLength: number): string {
   const normalized = value.trim();
@@ -47,7 +47,9 @@ export function optionalPositiveMinor(
 
 export function requireCurrency(value: string): string {
   const currency = value.toUpperCase();
-  referenceRateMicros(currency, 'INR');
+  if (!isSupportedBudgetCurrency(currency)) {
+    throw new DomainError('Choose a supported currency.');
+  }
   return currency;
 }
 

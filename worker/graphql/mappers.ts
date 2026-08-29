@@ -9,15 +9,7 @@ export function mapExpense(expense: ExpenseRow) {
   return {
     id: expense.id,
     title: expense.title,
-    originalAmount: mapMoney(expense.amount_minor, expense.currency),
-    convertedAmount: mapMoney(
-      expense.converted_amount_minor,
-      expense.budget_currency ?? expense.currency,
-    ),
-    exchangeRate: (expense.exchange_rate_micros / 1_000_000)
-      .toFixed(6)
-      .replace(/0+$/, '')
-      .replace(/\.$/, ''),
+    amount: mapMoney(expense.converted_amount_minor, expense.budget_currency ?? expense.currency),
     expenseDate: expense.expense_date,
     notes: expense.notes,
     budgetId: expense.budget_id,
@@ -53,7 +45,7 @@ export function mapBudget(budget: BudgetRow) {
     id: budget.id,
     name: budget.name,
     type: budget.type,
-    reportingCurrency: budget.reporting_currency,
+    currency: budget.reporting_currency,
     amount: mapMoney(budget.amount_minor, budget.reporting_currency),
     spent: mapMoney(spent, budget.reporting_currency),
     remaining: mapMoney(position.remaining, budget.reporting_currency),

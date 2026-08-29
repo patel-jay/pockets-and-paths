@@ -1,32 +1,21 @@
-import { convertMinorUnits } from '../money';
-import type { BudgetRow } from '../types';
+import type { BudgetRow, CurrencyBalance } from '../types';
 
-export function availableInProfileCurrency(budgets: BudgetRow[], profileCurrency: string): number {
-  return budgets.reduce((total, budget) => {
-    const remaining = Math.max(0, budget.amount_minor - (budget.spent_minor ?? 0));
-    return (
-      total +
-      convertMinorUnits(
-        remaining,
-        budget.reporting_currency,
-        profileCurrency,
-        budget.profile_rate_micros,
-      )
-    );
-  }, 0);
-}
+export function summarizeBalancesByCurrency(budgets: BudgetRow[]): CurrencyBalance[] {
+  const balances = new Map<string, CurrencyBalance>();
 
-export function overspentInProfileCurrency(budgets: BudgetRow[], profileCurrency: string): number {
-  return budgets.reduce((total, budget) => {
-    const overspent = Math.max(0, (budget.spent_minor ?? 0) - budget.amount_minor);
-    return (
-      total +
-      convertMinorUnits(
-        overspent,
-        budget.reporting_currency,
-        profileCurrency,
-        budget.profile_rate_micros,
-      )
-    );
-  }, 0);
+  for (const budget of budgets) {
+    const spent = budget.spent_minor ?? 0;
+    const current = balances.get(budget.reporting_currency) ?? {
+      currency: budget.reporting_currency,
+      remainingMinor: 0,
+      overspentMinor: 0,
+      budgetCount: 0,
+    };
+    current.remainingMinor += Math.max(0, budget.amount_minor - spent);
+    current.overspentMinor += Math.max(0, spent - budget.amount_minor);
+    current.budgetCount += 1;
+    balances.set(current.currency, current);
+  }
+
+  return [...balances.values()].sort((left, right) => left.currency.localeCompare(right.currency));
 }

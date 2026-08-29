@@ -83,7 +83,7 @@ export default {
         profile: {
           id: profile.viewer_id,
           displayName: profile.display_name,
-          baseCurrency: profile.base_currency,
+          defaultCurrency: profile.base_currency,
           locale: profile.locale,
         },
       });
@@ -121,7 +121,7 @@ export default {
           profile: {
             id: profile.viewer_id,
             displayName: profile.display_name,
-            baseCurrency: profile.base_currency,
+            defaultCurrency: profile.base_currency,
             locale: profile.locale,
           },
         },

@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays } from 'lucide-react';
 import { addExpenseMutation, graphqlRequest, previewExpenseMutation } from '../lib/graphql';
-import { formatMoney, parseMajorToMinor, supportedCurrencies, todayIso } from '../lib/money';
+import { formatMoney, parseMajorToMinor, todayIso } from '../lib/money';
 import { useBudgets } from '../lib/queries';
 import type { ExpenseImpact } from '../types/app';
 import type { AddExpenseInput, ExpenseImpactInput } from '../types/inputs';
@@ -16,14 +16,13 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
   const budgetsQuery = useBudgets();
   const budgets = useMemo(() => budgetsQuery.data?.budgets ?? [], [budgetsQuery.data]);
   const [budgetId, setBudgetId] = useState(preferredBudgetId ?? '');
-  const [currency, setCurrency] = useState('');
   const [error, setError] = useState('');
   const [warning, setWarning] = useState<{ fingerprint: string; impact: ExpenseImpact } | null>(
     null,
   );
   const selectedBudget = budgets.find((budget) => budget.id === budgetId) ?? budgets[0];
   const selectedBudgetId = selectedBudget?.id ?? '';
-  const selectedCurrency = currency || selectedBudget?.reportingCurrency || 'INR';
+  const selectedCurrency = selectedBudget?.currency || 'INR';
 
   const mutation = useMutation({
     mutationFn: (input: AddExpenseInput) => graphqlRequest(addExpenseMutation, { input }),
@@ -46,8 +45,6 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
         categoryId: String(form.get('categoryId')),
         title: String(form.get('title')).trim(),
         amountMinor: parseMajorToMinor(String(form.get('amount')), selectedCurrency),
-        currency: selectedCurrency,
-        exchangeRate: String(form.get('exchangeRate') || '').trim() || null,
         expenseDate: String(form.get('expenseDate')),
         notes: String(form.get('notes') || '').trim() || null,
       };
@@ -62,8 +59,6 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
           budgetId: input.budgetId,
           categoryId: input.categoryId,
           amountMinor: input.amountMinor,
-          currency: input.currency,
-          exchangeRate: input.exchangeRate,
         },
         {
           onSuccess: ({ previewExpense }) => {
@@ -92,7 +87,7 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
       open={open}
       onClose={onClose}
       title="Add an expense"
-      description="Record it in the currency you paid; the budget keeps its own reporting currency."
+      description="Every expense uses the selected budget’s currency."
     >
       {budgetsQuery.isLoading && <LoadingState label="Loading budgets…" />}
       {budgetsQuery.isError && (
@@ -106,14 +101,12 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
               name="budgetId"
               value={selectedBudgetId}
               onChange={(event) => {
-                const next = budgets.find((budget) => budget.id === event.target.value);
                 setBudgetId(event.target.value);
-                if (next) setCurrency(next.reportingCurrency);
               }}
             >
               {budgets.map((budget) => (
                 <option value={budget.id} key={budget.id}>
-                  {budget.name} · {budget.reportingCurrency}
+                  {budget.name} · {budget.currency}
                 </option>
               ))}
             </select>
@@ -136,44 +129,16 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
             </label>
           </div>
 
-          <div className="form-row">
-            <label className="form-field">
-              <span>Paid in</span>
-              <select
-                value={selectedCurrency}
-                onChange={(event) => setCurrency(event.target.value)}
-              >
-                {supportedCurrencies.map((option) => (
-                  <option key={option}>{option}</option>
-                ))}
-              </select>
-            </label>
-            <label className="form-field form-field--grow">
-              <span>Amount</span>
-              <input
-                name="amount"
-                required
-                inputMode="decimal"
-                placeholder={selectedCurrency === 'JPY' ? '28400' : '42.50'}
-              />
-            </label>
-          </div>
-
-          {selectedBudget && selectedCurrency !== selectedBudget.reportingCurrency && (
-            <label className="form-field">
-              <span>
-                Custom exchange rate{' '}
-                <small>
-                  Optional · 1 {selectedCurrency} in {selectedBudget.reportingCurrency}
-                </small>
-              </span>
-              <input
-                name="exchangeRate"
-                inputMode="decimal"
-                placeholder="Leave blank to use the saved demo rate"
-              />
-            </label>
-          )}
+          <label className="form-field">
+            <span>Amount in {selectedCurrency}</span>
+            <input
+              name="amount"
+              required
+              inputMode="decimal"
+              placeholder={selectedCurrency === 'JPY' ? '28400' : '42.50'}
+            />
+            <small>The currency is set by {selectedBudget?.name}.</small>
+          </label>
 
           <label className="form-field">
             <span>Date</span>

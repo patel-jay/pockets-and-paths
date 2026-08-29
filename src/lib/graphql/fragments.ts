@@ -32,7 +32,7 @@ export const budgetFragment = /* GraphQL */ `
     id
     name
     type
-    reportingCurrency
+    currency
     progress
     startDate
     endDate
@@ -75,11 +75,7 @@ export const expenseFragment = /* GraphQL */ `
     budgetName
     categoryId
     categoryName
-    exchangeRate
-    originalAmount {
-      ...MoneyFields
-    }
-    convertedAmount {
+    amount {
       ...MoneyFields
     }
   }

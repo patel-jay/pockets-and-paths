@@ -5,17 +5,17 @@
 
 A multi-currency budget planner for everyday life and temporary journeys.
 
-Pockets & Paths lets one person run a recurring monthly plan alongside any number of fixed-date budgets for trips, events, relocations, or other temporary chapters. Expenses keep the currency that was actually paid while each budget reports in its chosen currency.
+Pockets & Paths lets one person run a recurring monthly plan alongside any number of fixed-date budgets for trips, events, relocations, or other temporary chapters. Each budget owns one currency, and every expense inside it uses that currency automatically.
 
 ![Pockets & Paths dashboard showing concurrent monthly and temporary budgets](docs/images/dashboard.png)
 
 ## Product highlights
 
 - Recurring monthly and fixed-date temporary budgets can be active together.
-- Expenses have a budget, category, paid currency, date, and optional conversion rate.
+- Expenses inherit their budget’s currency, keeping entry and reporting unambiguous.
 - Optional category limits show spent, remaining, and overspent percentages without forcing every category into an allocation.
 - Expenses are never blocked by an exhausted plan; the app warns first, then records reality and shows the true overspend.
-- The profile currency provides one combined view without erasing original amounts.
+- The dashboard groups remaining and overspent balances by currency instead of presenting a misleading converted total.
 - Responsive SPA navigation and an installable PWA shell work across phones and larger screens.
 - A dummy login opens an isolated, cookie-backed demo profile for each browser, with logout and reset controls.
 
@@ -62,13 +62,13 @@ npm run test:e2e
 npm run build
 ```
 
-The unit suite covers money conversion, parsing, spending positions, and relative seed dates. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including viewer isolation, ownership checks, mutations, database reads, and overspending. A browser smoke test verifies the primary sign-in and budgeting flow.
+The unit suite covers currency support, parsing, spending positions, grouped currency balances, and relative seed dates. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including viewer isolation, ownership checks, budget-currency inheritance, mutations, database reads, and overspending. A browser smoke test verifies the primary sign-in and budgeting flow.
 
 ## Data and currency model
 
-Money is stored as integer minor units, never as floating-point values. An expense stores both its original amount and its converted amount in the selected budget’s reporting currency. Conversion uses integer micro-rates and deterministic rounding. Overall-budget progress can exceed 100%; remaining and overspent amounts are separate, non-negative values. A category with no limit reports spending without inventing a percentage or overspending state.
+Money is stored as integer minor units, never as floating-point values. A budget selects its currency when it is created; expenses do not accept a separate currency or exchange rate. The profile’s default currency only preselects new budget forms. On the dashboard, balances are summed only when their currency matches and are displayed as separate groups.
 
-The exchange rates included in this portfolio demo are fixed reference values, not live financial data and not suitable for financial decisions. The boundary is isolated in `worker/money.ts`, so a production-grade rate provider can replace it without changing the budget model.
+Overall-budget progress can exceed 100%; remaining and overspent amounts are separate, non-negative values. A category with no limit reports spending without inventing a percentage or overspending state.
 
 ## Deployment outline
 
@@ -83,4 +83,4 @@ See [architecture](docs/architecture.md), [product decisions](docs/product-decis
 
 ## Current scope
 
-This is a focused portfolio MVP. The visible dummy login is a browser-isolated preview flow, not production authentication. External identity, live exchange-rate ingestion, collaborative budgets, bank imports, and a durable offline mutation queue are intentionally outside the current release. The PWA caches the application shell; GraphQL data remains network-first.
+This is a focused portfolio MVP. The visible dummy login is a browser-isolated preview flow, not production authentication. External identity, cross-currency expense conversion, collaborative budgets, bank imports, and a durable offline mutation queue are intentionally outside the current release. The PWA caches the application shell; GraphQL data remains network-first.

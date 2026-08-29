@@ -47,7 +47,7 @@ export function LoginPage() {
           </span>
           <span>
             <Map size={18} />
-            Original and reporting currencies
+            One clear currency per budget
           </span>
           <span>
             <ShieldCheck size={18} />

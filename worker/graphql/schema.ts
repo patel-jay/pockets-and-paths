@@ -1,6 +1,5 @@
 import { createSchema } from 'graphql-yoga';
 import {
-  availableInProfileCurrency,
   createBudget,
   createCategory,
   createExpense,
@@ -9,7 +8,7 @@ import {
   getCategories,
   getExpenses,
   getProfile,
-  overspentInProfileCurrency,
+  summarizeBalancesByCurrency,
   previewExpenseImpact,
   splitCategoryLimits,
   updateCategoryLimit,
@@ -36,7 +35,7 @@ export const schema = createSchema<RequestContext>({
         return {
           id: profile.viewer_id,
           displayName: profile.display_name,
-          baseCurrency: profile.base_currency,
+          defaultCurrency: profile.base_currency,
           locale: profile.locale,
         };
       },
@@ -63,26 +62,24 @@ export const schema = createSchema<RequestContext>({
           profile: {
             id: profile.viewer_id,
             displayName: profile.display_name,
-            baseCurrency: profile.base_currency,
+            defaultCurrency: profile.base_currency,
             locale: profile.locale,
           },
-          available: mapMoney(
-            availableInProfileCurrency(budgets, profile.base_currency),
-            profile.base_currency,
-          ),
-          overspent: mapMoney(
-            overspentInProfileCurrency(budgets, profile.base_currency),
-            profile.base_currency,
-          ),
+          balances: summarizeBalancesByCurrency(budgets).map((balance) => ({
+            currency: balance.currency,
+            remaining: mapMoney(balance.remainingMinor, balance.currency),
+            overspent: mapMoney(balance.overspentMinor, balance.currency),
+            budgetCount: balance.budgetCount,
+          })),
           activeBudgets: budgets.map(mapBudget),
           recentExpenses: recentExpenses.map(mapExpense),
         };
       },
     },
     Budget: {
-      categories: async (budget: { id: string; reportingCurrency: string }, _args, context) => {
+      categories: async (budget: { id: string; currency: string }, _args, context) => {
         const categories = await getCategories(context.env.DB, context.viewerId, budget.id);
-        return categories.map((category) => mapCategory(category, budget.reportingCurrency));
+        return categories.map((category) => mapCategory(category, budget.currency));
       },
       expenses: async (budget: { id: string }, args: { limit?: number }, context) => {
         const expenses = await getExpenses(context.env.DB, context.viewerId, {
@@ -114,7 +111,6 @@ export const schema = createSchema<RequestContext>({
       previewExpense: async (_root, args: { input: ExpenseImpactInput }, context) => {
         const impact = await previewExpenseImpact(context.env.DB, context.viewerId, args.input);
         return {
-          convertedAmount: mapMoney(impact.convertedAmountMinor, impact.budgetCurrency),
           budgetProjectedSpent: mapMoney(impact.budgetProjectedSpentMinor, impact.budgetCurrency),
           budgetOverspent: mapMoney(impact.budgetOverspentMinor, impact.budgetCurrency),
           budgetWillOverspend: impact.budgetOverspentMinor > 0,
@@ -135,7 +131,7 @@ export const schema = createSchema<RequestContext>({
         return {
           id: profile.viewer_id,
           displayName: profile.display_name,
-          baseCurrency: profile.base_currency,
+          defaultCurrency: profile.base_currency,
           locale: profile.locale,
         };
       },

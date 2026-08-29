@@ -6,7 +6,7 @@ export type Money = {
 export type Profile = {
   id: string;
   displayName: string;
-  baseCurrency: string;
+  defaultCurrency: string;
   locale: string;
 };
 
@@ -26,7 +26,7 @@ export type Budget = {
   id: string;
   name: string;
   type: 'MONTHLY' | 'TEMPORARY';
-  reportingCurrency: string;
+  currency: string;
   amount: Money;
   spent: Money;
   remaining: Money;
@@ -46,9 +46,7 @@ export type Budget = {
 export type Expense = {
   id: string;
   title: string;
-  originalAmount: Money;
-  convertedAmount: Money;
-  exchangeRate: string;
+  amount: Money;
   expenseDate: string;
   notes: string | null;
   budgetId: string;
@@ -57,18 +55,23 @@ export type Expense = {
   categoryName: string;
 };
 
+export type CurrencyBalance = {
+  currency: string;
+  remaining: Money;
+  overspent: Money;
+  budgetCount: number;
+};
+
 export type DashboardData = {
   dashboard: {
     profile: Profile;
-    available: Money;
-    overspent: Money;
+    balances: CurrencyBalance[];
     activeBudgets: Budget[];
     recentExpenses: Expense[];
   };
 };
 
 export type ExpenseImpact = {
-  convertedAmount: Money;
   budgetProjectedSpent: Money;
   budgetOverspent: Money;
   budgetWillOverspend: boolean;

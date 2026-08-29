@@ -15,7 +15,7 @@ export function ExpensesPage() {
       <PageHeader
         eyebrow="One clear ledger"
         title="Expenses"
-        copy="Everyday purchases and journey costs, recorded in the currency you actually paid."
+        copy="Everyday purchases and journey costs, kept in each budget’s currency."
         action="expense"
       />
       <section className="activity-card activity-card--page" aria-label="All expenses">

@@ -84,7 +84,7 @@ export function AppShell() {
               <span className="profile-chip__avatar">{initials(profile?.displayName)}</span>
               <span>
                 <strong>{profile?.displayName ?? 'Loading…'}</strong>
-                <small>{profile?.baseCurrency ?? '—'} profile</small>
+                <small>{profile?.defaultCurrency ?? '—'} default</small>
               </span>
             </div>
             <button

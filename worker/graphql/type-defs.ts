@@ -17,7 +17,7 @@ export const typeDefs = /* GraphQL */ `
   type Profile {
     id: ID!
     displayName: String!
-    baseCurrency: String!
+    defaultCurrency: String!
     locale: String!
   }
 
@@ -37,7 +37,7 @@ export const typeDefs = /* GraphQL */ `
     id: ID!
     name: String!
     type: BudgetType!
-    reportingCurrency: String!
+    currency: String!
     amount: Money!
     spent: Money!
     remaining: Money!
@@ -57,9 +57,7 @@ export const typeDefs = /* GraphQL */ `
   type Expense {
     id: ID!
     title: String!
-    originalAmount: Money!
-    convertedAmount: Money!
-    exchangeRate: String!
+    amount: Money!
     expenseDate: String!
     notes: String
     budgetId: ID!
@@ -70,16 +68,22 @@ export const typeDefs = /* GraphQL */ `
 
   type Dashboard {
     profile: Profile!
-    available: Money!
-    overspent: Money!
+    balances: [CurrencyBalance!]!
     activeBudgets: [Budget!]!
     recentExpenses: [Expense!]!
+  }
+
+  type CurrencyBalance {
+    currency: String!
+    remaining: Money!
+    overspent: Money!
+    budgetCount: Int!
   }
 
   input CreateBudgetInput {
     name: String!
     type: BudgetType!
-    reportingCurrency: String!
+    currency: String!
     amountMinor: String!
     startDate: String!
     endDate: String
@@ -97,8 +101,6 @@ export const typeDefs = /* GraphQL */ `
     categoryId: ID!
     title: String!
     amountMinor: String!
-    currency: String!
-    exchangeRate: String
     expenseDate: String!
     notes: String
   }
@@ -107,12 +109,9 @@ export const typeDefs = /* GraphQL */ `
     budgetId: ID!
     categoryId: ID!
     amountMinor: String!
-    currency: String!
-    exchangeRate: String
   }
 
   type ExpenseImpact {
-    convertedAmount: Money!
     budgetProjectedSpent: Money!
     budgetOverspent: Money!
     budgetWillOverspend: Boolean!
@@ -125,7 +124,7 @@ export const typeDefs = /* GraphQL */ `
 
   input UpdateProfileInput {
     displayName: String!
-    baseCurrency: String!
+    defaultCurrency: String!
     locale: String!
   }
 

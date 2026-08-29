@@ -19,14 +19,18 @@ export const dashboardQuery = defineOperation<DashboardData>(/* GraphQL */ `
       profile {
         id
         displayName
-        baseCurrency
+        defaultCurrency
         locale
       }
-      available {
-        ...MoneyFields
-      }
-      overspent {
-        ...MoneyFields
+      balances {
+        currency
+        budgetCount
+        remaining {
+          ...MoneyFields
+        }
+        overspent {
+          ...MoneyFields
+        }
       }
       activeBudgets {
         ...BudgetFields
@@ -81,7 +85,7 @@ export const profileQuery = defineOperation<{ profile: Profile }>(/* GraphQL */ 
     profile {
       id
       displayName
-      baseCurrency
+      defaultCurrency
       locale
     }
   }
@@ -116,9 +120,6 @@ export const previewExpenseMutation = defineOperation<
   ${moneyFragment}
   mutation PreviewExpense($input: ExpenseImpactInput!) {
     previewExpense(input: $input) {
-      convertedAmount {
-        ...MoneyFields
-      }
       budgetProjectedSpent {
         ...MoneyFields
       }
@@ -180,7 +181,7 @@ export const updateProfileMutation = defineOperation<
     updateProfile(input: $input) {
       id
       displayName
-      baseCurrency
+      defaultCurrency
       locale
     }
   }

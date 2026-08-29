@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, CircleDollarSign, Route } from 'lucide-react';
 import { createBudgetMutation, graphqlRequest } from '../lib/graphql';
 import { parseMajorToMinor, supportedCurrencies, todayIso } from '../lib/money';
+import { useProfile } from '../lib/queries';
 import type { CreateBudgetInput } from '../types/inputs';
 import { Modal } from './Modal';
 
@@ -10,8 +11,10 @@ type Props = { open: boolean; onClose: () => void };
 
 export function CreateBudgetModal({ open, onClose }: Props) {
   const queryClient = useQueryClient();
+  const profile = useProfile();
   const [type, setType] = useState<'MONTHLY' | 'TEMPORARY'>('MONTHLY');
-  const [currency, setCurrency] = useState('INR');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>();
+  const currency = selectedCurrency ?? profile.data?.profile.defaultCurrency ?? 'INR';
   const [error, setError] = useState('');
   const mutation = useMutation({
     mutationFn: (input: CreateBudgetInput) => graphqlRequest(createBudgetMutation, { input }),
@@ -33,7 +36,7 @@ export function CreateBudgetModal({ open, onClose }: Props) {
       mutation.mutate({
         name: String(form.get('name')).trim(),
         type,
-        reportingCurrency: currency,
+        currency,
         amountMinor: parseMajorToMinor(String(form.get('amount')), currency),
         startDate,
         endDate,
@@ -103,12 +106,13 @@ export function CreateBudgetModal({ open, onClose }: Props) {
             <select
               name="currency"
               value={currency}
-              onChange={(event) => setCurrency(event.target.value)}
+              onChange={(event) => setSelectedCurrency(event.target.value)}
             >
               {supportedCurrencies.map((option) => (
                 <option key={option}>{option}</option>
               ))}
             </select>
+            <small>Expenses added to this budget will use this currency.</small>
           </label>
           <label className="form-field form-field--grow">
             <span>Total budget</span>

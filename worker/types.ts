@@ -14,7 +14,7 @@ export type BudgetStatus = 'ACTIVE' | 'ARCHIVED';
 export interface CreateBudgetInput {
   name: string;
   type: BudgetType;
-  reportingCurrency: string;
+  currency: string;
   amountMinor: string;
   startDate: string;
   endDate?: string | null;
@@ -36,8 +36,6 @@ export interface ExpenseImpactInput {
   budgetId: string;
   categoryId: string;
   amountMinor: string;
-  currency: string;
-  exchangeRate?: string | null;
 }
 
 export interface AddExpenseInput extends ExpenseImpactInput {
@@ -48,7 +46,7 @@ export interface AddExpenseInput extends ExpenseImpactInput {
 
 export interface UpdateProfileInput {
   displayName: string;
-  baseCurrency: string;
+  defaultCurrency: string;
   locale: string;
 }
 
@@ -107,8 +105,6 @@ export interface ExpenseRow {
 }
 
 export interface ExpenseImpact {
-  convertedAmountMinor: number;
-  exchangeRateMicros: number;
   budgetCurrency: string;
   budgetProjectedSpentMinor: number;
   budgetOverspentMinor: number;
@@ -116,4 +112,11 @@ export interface ExpenseImpact {
   categoryHasLimit: boolean;
   categoryProjectedSpentMinor: number;
   categoryOverspentMinor: number;
+}
+
+export interface CurrencyBalance {
+  currency: string;
+  remainingMinor: number;
+  overspentMinor: number;
+  budgetCount: number;
 }

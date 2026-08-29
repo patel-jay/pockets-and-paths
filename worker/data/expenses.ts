@@ -1,16 +1,9 @@
-import { convertMinorUnits, decimalRateToMicros, referenceRateMicros } from '../money';
 import { DomainError } from '../errors';
 import type { AddExpenseInput, ExpenseImpact, ExpenseImpactInput, ExpenseRow } from '../types';
 import { optionalSpendingPosition, spendingPosition } from '../budget-math';
 import { getBudget } from './budgets';
 import { getCategories } from './categories';
-import {
-  optionalText,
-  requireCurrency,
-  requireIsoDate,
-  requirePositiveMinor,
-  requireText,
-} from './validation';
+import { optionalText, requireIsoDate, requirePositiveMinor, requireText } from './validation';
 
 export async function getExpenses(
   db: D1Database,
@@ -52,19 +45,8 @@ export async function previewExpenseImpact(
   }
 
   const amountMinor = requirePositiveMinor(input.amountMinor, 'Expense amount');
-  const currency = requireCurrency(input.currency);
-  const rateMicros = input.exchangeRate
-    ? decimalRateToMicros(input.exchangeRate)
-    : referenceRateMicros(currency, budget.reporting_currency);
-  const convertedAmountMinor = convertMinorUnits(
-    amountMinor,
-    currency,
-    budget.reporting_currency,
-    rateMicros,
-  );
-
-  const budgetProjectedSpentMinor = (budget.spent_minor ?? 0) + convertedAmountMinor;
-  const categoryProjectedSpentMinor = (category.spent_minor ?? 0) + convertedAmountMinor;
+  const budgetProjectedSpentMinor = (budget.spent_minor ?? 0) + amountMinor;
+  const categoryProjectedSpentMinor = (category.spent_minor ?? 0) + amountMinor;
   const budgetPosition = spendingPosition(budgetProjectedSpentMinor, budget.amount_minor);
   const categoryPosition = optionalSpendingPosition(
     categoryProjectedSpentMinor,
@@ -72,8 +54,6 @@ export async function previewExpenseImpact(
   );
 
   return {
-    convertedAmountMinor,
-    exchangeRateMicros: rateMicros,
     budgetCurrency: budget.reporting_currency,
     budgetProjectedSpentMinor,
     budgetOverspentMinor: budgetPosition.overspent,
@@ -92,7 +72,6 @@ export async function createExpense(
   const title = requireText(input.title, 'Expense description', 80);
   const expenseDate = requireIsoDate(input.expenseDate, 'Expense date');
   const amountMinor = requirePositiveMinor(input.amountMinor, 'Expense amount');
-  const currency = requireCurrency(input.currency);
   const notes = optionalText(input.notes, 'Notes', 300);
   const impact = await previewExpenseImpact(db, viewerId, input);
   const id = crypto.randomUUID();
@@ -113,9 +92,9 @@ export async function createExpense(
       input.categoryId,
       title,
       amountMinor,
-      currency,
-      impact.exchangeRateMicros,
-      impact.convertedAmountMinor,
+      impact.budgetCurrency,
+      1_000_000,
+      amountMinor,
       expenseDate,
       notes,
       now,
