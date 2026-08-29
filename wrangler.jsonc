@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pockets-and-paths",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-20",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pockets-and-paths",
+      "database_id": "00000000-0000-4000-8000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
