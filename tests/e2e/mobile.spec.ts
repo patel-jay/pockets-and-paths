@@ -18,8 +18,10 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
 
   await mobileNav.getByRole('link', { name: 'Budgets', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Budgets' })).toBeVisible();
-  await page.getByRole('link', { name: 'Open August monthly' }).click();
-  await expect(page.getByRole('heading', { name: 'August monthly' })).toBeVisible();
+  const monthlyBudget = page.getByRole('link', { name: /Open .* monthly/i }).first();
+  const monthlyBudgetName = (await monthlyBudget.getAttribute('aria-label'))!.replace('Open ', '');
+  await monthlyBudget.click();
+  await expect(page.getByRole('heading', { name: monthlyBudgetName, exact: true })).toBeVisible();
 
   const summaryValues = page.locator('.detail-summary strong');
   await expect(summaryValues).toHaveCount(4);
@@ -49,6 +51,17 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
     const box = await target.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
+
+  const categoryToggle = page
+    .locator('.category-actions')
+    .getByRole('button', { name: 'Add', exact: true });
+  await categoryToggle.click();
+  const categoryColor = page.getByLabel('Category color');
+  await expect(categoryColor).toHaveAttribute('type', 'color');
+  await expect(categoryColor).toHaveValue('#2e7064');
+  await categoryColor.fill('#e8795d');
+  await expect(page.getByText('#E8795D')).toBeVisible();
+  await categoryToggle.click();
 
   await page.locator('.detail-header .primary-button').click();
   const expenseDialog = page.getByRole('dialog', { name: 'Add an expense' });

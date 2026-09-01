@@ -17,7 +17,7 @@ import { queryKeys, useBudget, useProfile } from '../lib/queries';
 import type { Category } from '../types/app';
 import type { CreateCategoryInput } from '../types/inputs';
 
-const categoryColors = ['#2e7064', '#e8795d', '#d1a64c', '#6382a8', '#8774a8'];
+const defaultCategoryColor = '#2e7064';
 
 export function BudgetDetailPage() {
   const { budgetId = '' } = useParams();
@@ -26,6 +26,7 @@ export function BudgetDetailPage() {
   const queryClient = useQueryClient();
   const { openExpense } = useAppActions();
   const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [categoryColor, setCategoryColor] = useState(defaultCategoryColor);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formError, setFormError] = useState('');
   const mutation = useMutation({
@@ -33,6 +34,7 @@ export function BudgetDetailPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.budget(budgetId) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.budgets });
+      setCategoryColor(defaultCategoryColor);
       setShowCategoryForm(false);
     },
   });
@@ -173,13 +175,16 @@ export function BudgetDetailPage() {
                 placeholder={`Optional limit in ${budget.currency}`}
                 aria-label={`Optional limit in ${budget.currency}`}
               />
-              <select name="color" aria-label="Category color">
-                {categoryColors.map((color) => (
-                  <option value={color} key={color}>
-                    {color}
-                  </option>
-                ))}
-              </select>
+              <label className="color-picker">
+                <input
+                  type="color"
+                  name="color"
+                  value={categoryColor}
+                  onChange={(event) => setCategoryColor(event.target.value)}
+                  aria-label="Category color"
+                />
+                <span aria-hidden="true">{categoryColor.toUpperCase()}</span>
+              </label>
               <button className="secondary-button" type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? 'Adding…' : 'Add'}
               </button>
