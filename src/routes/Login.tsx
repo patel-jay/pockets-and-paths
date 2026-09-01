@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, LockKeyhole, Map, ShieldCheck, WalletCards } from 'lucide-react';
+import { BrandMark } from '../components/BrandMark';
 import { demoCredentials } from '../lib/auth';
 import { useAuth } from '../lib/auth-context';
 
@@ -25,9 +26,7 @@ export function LoginPage() {
     <main className="login-page">
       <section className="login-story" aria-labelledby="login-product-title">
         <div className="login-brand">
-          <span className="brand__mark" aria-hidden="true">
-            <WalletCards size={20} strokeWidth={2.2} />
-          </span>
+          <BrandMark />
           <span>
             Pockets <i>&</i> Paths
           </span>

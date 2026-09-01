@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.png', 'logo-mark.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Pockets & Paths',
         short_name: 'Pockets',
@@ -20,10 +20,16 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/favicon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
+            src: '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
           },
         ],
       },
@@ -41,7 +47,7 @@ export default defineConfig({
     sites(),
   ],
   server: {
-    host: '127.0.0.1',
+    host: '0.0.0.0',
     port: 4173,
     strictPort: true,
   },

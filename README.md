@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/logo-mark.png" alt="Pockets & Paths logo" width="84" height="84" />
+</p>
+
 # Pockets & Paths
 
 [![CI](https://github.com/patel-jay/pockets-and-paths/actions/workflows/ci.yml/badge.svg)](https://github.com/patel-jay/pockets-and-paths/actions/workflows/ci.yml)

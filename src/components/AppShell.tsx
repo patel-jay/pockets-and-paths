@@ -1,18 +1,11 @@
 import { useEffect, useState } from 'react';
-import {
-  CircleDollarSign,
-  Home,
-  LogOut,
-  Plus,
-  ReceiptText,
-  Settings,
-  WalletCards,
-} from 'lucide-react';
+import { CircleDollarSign, Home, LogOut, Plus, ReceiptText, Settings } from 'lucide-react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { useDashboard } from '../lib/queries';
 import type { AppOutletContext } from '../lib/app-actions';
 import { useAuth } from '../lib/auth-context';
 import { AddExpenseModal } from './AddExpenseModal';
+import { BrandMark } from './BrandMark';
 import { CreateBudgetModal } from './CreateBudgetModal';
 
 const navItems = [
@@ -52,9 +45,7 @@ export function AppShell() {
     <div className="app-shell">
       <aside className="sidebar" aria-label="Primary navigation">
         <NavLink className="brand" to="/" aria-label="Pockets & Paths home">
-          <span className="brand__mark" aria-hidden="true">
-            <WalletCards size={20} strokeWidth={2.2} />
-          </span>
+          <BrandMark />
           <span>
             Pockets <i>&</i> Paths
           </span>

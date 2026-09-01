@@ -34,15 +34,17 @@
 }
 
 .brand__mark {
-  display: grid;
+  display: block;
   width: 38px;
   height: 38px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.17);
-  border-radius: 13px;
-  color: #173b36;
-  background: #f4c5b4;
-  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.16);
+  flex: none;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 }
 
 .side-nav {
