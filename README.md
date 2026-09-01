@@ -13,6 +13,10 @@ Pockets & Paths lets one person run a recurring monthly plan alongside any numbe
 
 ![Pockets & Paths dashboard showing concurrent monthly and temporary budgets](docs/images/dashboard.png)
 
+<p align="center">
+  <img src="docs/images/dashboard-mobile.png" alt="Pockets & Paths dashboard on a mobile screen" width="360" />
+</p>
+
 ## Product highlights
 
 - Recurring monthly and fixed-date temporary budgets can be active together.
@@ -49,7 +53,9 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:4173`. The development command applies pending D1 migrations before starting. Sign in with `demo@pocketsandpaths.app` and password `pathfinder`; the Worker seeds a realistic monthly budget plus a temporary Japan budget for each isolated browser session.
+Open `http://127.0.0.1:4173` on the development computer. The development command applies pending D1 migrations before starting. Sign in with `demo@pocketsandpaths.app` and password `pathfinder`; the Worker seeds a realistic monthly budget plus a temporary Japan budget for each isolated browser session.
+
+To preview the app from another device on the same trusted Wi-Fi network, open the `Network` URL printed by Vite (for example, `http://192.168.x.x:4173`). If it is unavailable, allow Node.js through the computer's firewall for private networks. The local IP address may change between connections.
 
 Seed dates are generated relative to the current month, so a newly reset demo always opens with a current monthly plan and an upcoming temporary journey.
 

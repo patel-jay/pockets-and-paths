@@ -47,6 +47,16 @@
   }
 }
 
+.sidebar .brand__mark {
+  width: 42px;
+  height: 42px;
+
+  img {
+    filter: brightness(1.55) saturate(0.82) drop-shadow(0 0 1px rgba(239, 247, 244, 0.72))
+      drop-shadow(0 3px 7px rgba(4, 25, 22, 0.32));
+  }
+}
+
 .side-nav {
   display: grid;
   gap: 7px;
