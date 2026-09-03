@@ -9,6 +9,10 @@ export type CreateBudgetInput = {
   endDate: string | null;
 };
 
+export type UpdateBudgetInput = Omit<CreateBudgetInput, 'type' | 'currency'> & {
+  budgetId: string;
+};
+
 export type CreateCategoryInput = {
   budgetId: string;
   name: string;

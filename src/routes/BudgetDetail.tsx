@@ -8,6 +8,7 @@ import { CategoryIcon } from '../components/CategoryIcon';
 import { CategoryIconPicker } from '../components/CategoryIconPicker';
 import { ExpenseList } from '../components/ExpenseList';
 import { CategoryLimitModal } from '../components/CategoryLimitModal';
+import { EditBudgetModal } from '../components/EditBudgetModal';
 import { useAppActions } from '../lib/app-actions';
 import {
   createCategoryMutation,
@@ -37,6 +38,7 @@ export function BudgetDetailPage() {
   const [categoryIcon, setCategoryIcon] = useState<CategoryIconKey>(defaultCategoryIcon);
   const [iconSelectedManually, setIconSelectedManually] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingBudget, setEditingBudget] = useState(false);
   const [formError, setFormError] = useState('');
   const mutation = useMutation({
     mutationFn: (input: CreateCategoryInput) => graphqlRequest(createCategoryMutation, { input }),
@@ -66,6 +68,7 @@ export function BudgetDetailPage() {
   const budget = query.data?.budget;
   if (!budget) return <ErrorState message="That budget does not exist or is unavailable." />;
   const locale = profile.data?.profile.locale ?? 'en-IN';
+  const isArchived = budget.status === 'ARCHIVED';
 
   const submitCategory = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -108,20 +111,38 @@ export function BudgetDetailPage() {
       </Link>
       <header className="detail-header">
         <div>
-          <p className="eyebrow">
-            {budget.type === 'MONTHLY' ? 'Recurring monthly' : 'Fixed-date temporary'}
-          </p>
+          <div className="detail-header__eyebrow">
+            <p className="eyebrow">
+              {budget.type === 'MONTHLY' ? 'Recurring monthly' : 'Fixed-date temporary'}
+            </p>
+            {isArchived && <span className="archived-label">Archived</span>}
+          </div>
           <h1>{budget.name}</h1>
           <p>
             {formatBudgetPeriod(budget.startDate, budget.endDate, budget.type, locale)} ·{' '}
             {budget.currency}
           </p>
         </div>
-        <button className="primary-button" type="button" onClick={() => openExpense(budget.id)}>
-          <Plus size={18} />
-          Add expense
-        </button>
+        <div className="detail-header__actions">
+          <button className="secondary-button" type="button" onClick={() => setEditingBudget(true)}>
+            <Pencil size={17} />
+            Edit budget
+          </button>
+          {!isArchived && (
+            <button className="primary-button" type="button" onClick={() => openExpense(budget.id)}>
+              <Plus size={18} />
+              Add expense
+            </button>
+          )}
+        </div>
       </header>
+
+      {isArchived && (
+        <div className="archived-budget-notice" role="status">
+          This budget is archived and read-only. Its categories and expenses remain available for
+          reference.
+        </div>
+      )}
 
       <section className="detail-summary">
         <div>
@@ -157,21 +178,23 @@ export function BudgetDetailPage() {
               <p className="eyebrow">Allocation</p>
               <h2 id="categories-title">Categories</h2>
             </div>
-            <div className="category-actions">
-              <button
-                className="text-button"
-                type="button"
-                disabled={splitMutation.isPending}
-                onClick={splitEvenly}
-              >
-                <Shuffle size={15} />
-                {splitMutation.isPending ? 'Splitting…' : 'Split evenly'}
-              </button>
-              <button className="text-button" type="button" onClick={toggleCategoryForm}>
-                <Plus size={16} />
-                Add
-              </button>
-            </div>
+            {!isArchived && (
+              <div className="category-actions">
+                <button
+                  className="text-button"
+                  type="button"
+                  disabled={splitMutation.isPending}
+                  onClick={splitEvenly}
+                >
+                  <Shuffle size={15} />
+                  {splitMutation.isPending ? 'Splitting…' : 'Split evenly'}
+                </button>
+                <button className="text-button" type="button" onClick={toggleCategoryForm}>
+                  <Plus size={16} />
+                  Add
+                </button>
+              </div>
+            )}
           </div>
           {splitMutation.error && (
             <p className="panel-error" role="alert">
@@ -306,14 +329,16 @@ export function BudgetDetailPage() {
                         category.overspent &&
                         `${formatMoney(category.overspent.minor, category.overspent.currency, locale)} over · ${Math.max(0, Math.round(category.progress ?? 100) - 100)}%`}
                     </span>
-                    <button
-                      className="category-edit"
-                      type="button"
-                      aria-label={`Edit ${category.name} category`}
-                      onClick={() => setEditingCategory(category)}
-                    >
-                      <Pencil size={14} />
-                    </button>
+                    {!isArchived && (
+                      <button
+                        className="category-edit"
+                        type="button"
+                        aria-label={`Edit ${category.name} category`}
+                        onClick={() => setEditingCategory(category)}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
                   </article>
                 );
               })}
@@ -346,6 +371,9 @@ export function BudgetDetailPage() {
           open
           onClose={() => setEditingCategory(null)}
         />
+      )}
+      {editingBudget && (
+        <EditBudgetModal budget={budget} open onClose={() => setEditingBudget(false)} />
       )}
     </>
   );

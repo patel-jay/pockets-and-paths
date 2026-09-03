@@ -76,6 +76,7 @@
   min-height: 44px;
   align-items: center;
   justify-content: center;
+  gap: 7px;
   padding: 0 17px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -301,6 +302,34 @@
   gap: 8px;
 }
 
+.new-budget-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid rgba(152, 105, 18, 0.2);
+  border-radius: 14px;
+  color: #29342d;
+  background: linear-gradient(135deg, #ffe49a 0%, var(--sun) 52%, #ffc761 100%);
+  box-shadow:
+    0 9px 20px rgba(170, 119, 22, 0.2),
+    inset 0 1px rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+
+  svg {
+    stroke-width: 2.5;
+    transition: transform 180ms ease;
+  }
+}
+
 .text-button {
   display: inline-flex;
   min-height: 44px;
@@ -379,6 +408,17 @@
 
   &::before {
     background: var(--danger);
+  }
+}
+
+.budget-card--archived {
+  --card-accent: #71817c;
+  --card-accent-soft: #e4e9e6;
+  border-style: dashed;
+
+  .budget-card__status {
+    color: #596963;
+    background: #e4e9e6;
   }
 }
 
@@ -610,6 +650,17 @@
   .new-budget-card:hover {
     border-color: rgba(232, 121, 93, 0.5);
   }
+
+  .new-budget-button:hover {
+    box-shadow:
+      0 12px 25px rgba(170, 119, 22, 0.26),
+      inset 0 1px rgba(255, 255, 255, 0.78);
+    transform: translateY(-2px);
+
+    svg {
+      transform: rotate(90deg);
+    }
+  }
 }
 
 .page-header {
@@ -628,6 +679,16 @@
 
 .budget-grid--page {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.archived-budgets {
+  padding-top: 44px;
+}
+
+.section-count {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .state-card,

@@ -24,6 +24,10 @@ Categories organize every expense, but not everyone wants to pre-allocate every 
 
 A budget cannot prevent a payment that happened in the real world. The app previews the effect, warns when the expense will exceed a category or the overall budget, and still allows confirmation. Progress can exceed 100%, with the overage shown as both money and percentage.
 
+## Ended and archived mean different things
+
+A fixed-date budget becomes ended automatically after its end date, but it stays visible and editable so the user can review or extend it. Archiving is a manual, reversible action that removes a plan from current views and makes its history read-only until restored.
+
 ## What is intentionally postponed
 
 - Cross-currency expenses: correctness requires explicit conversion timing, rate sources, edits, and disclosure.

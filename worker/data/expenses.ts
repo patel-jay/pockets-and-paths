@@ -1,18 +1,33 @@
 import { DomainError } from '../errors';
-import type { AddExpenseInput, ExpenseImpact, ExpenseImpactInput, ExpenseRow } from '../types';
+import type {
+  AddExpenseInput,
+  BudgetStatus,
+  ExpenseImpact,
+  ExpenseImpactInput,
+  ExpenseRow,
+} from '../types';
 import { optionalSpendingPosition, spendingPosition } from '../budget-math';
-import { getBudget } from './budgets';
+import { getBudget, requireActiveBudget } from './budgets';
 import { getCategories } from './categories';
 import { optionalText, requireIsoDate, requirePositiveMinor, requireText } from './validation';
 
 export async function getExpenses(
   db: D1Database,
   viewerId: string,
-  options: { budgetId?: string; limit?: number } = {},
+  options: { budgetId?: string; budgetStatus?: BudgetStatus; limit?: number } = {},
 ): Promise<ExpenseRow[]> {
   const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
-  const budgetClause = options.budgetId ? 'AND e.budget_id = ?' : '';
-  const bindings = options.budgetId ? [viewerId, options.budgetId, limit] : [viewerId, limit];
+  const conditions = ['e.viewer_id = ?'];
+  const bindings: (string | number)[] = [viewerId];
+  if (options.budgetId) {
+    conditions.push('e.budget_id = ?');
+    bindings.push(options.budgetId);
+  }
+  if (options.budgetStatus) {
+    conditions.push('b.status = ?');
+    bindings.push(options.budgetStatus);
+  }
+  bindings.push(limit);
   const { results } = await db
     .prepare(
       `SELECT e.*, b.name AS budget_name, b.reporting_currency AS budget_currency,
@@ -20,7 +35,7 @@ export async function getExpenses(
        FROM expenses e
        INNER JOIN budgets b ON b.id = e.budget_id
        INNER JOIN categories c ON c.id = e.category_id
-       WHERE e.viewer_id = ? ${budgetClause}
+       WHERE ${conditions.join(' AND ')}
        ORDER BY e.expense_date DESC, e.created_at DESC
        LIMIT ?`,
     )
@@ -37,6 +52,7 @@ export async function previewExpenseImpact(
 ): Promise<ExpenseImpact> {
   const budget = await getBudget(db, viewerId, input.budgetId);
   if (!budget) throw new DomainError('Budget was not found.', 'NOT_FOUND');
+  requireActiveBudget(budget);
   const category = (await getCategories(db, viewerId, input.budgetId)).find(
     (candidate) => candidate.id === input.categoryId,
   );

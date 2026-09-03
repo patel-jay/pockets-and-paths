@@ -135,7 +135,7 @@ export function Dashboard() {
           <div className="section-heading__actions">
             {showHeaderCreate && (
               <button
-                className="text-button"
+                className="new-budget-button"
                 type="button"
                 onClick={openBudget}
                 aria-label="Create a budget"

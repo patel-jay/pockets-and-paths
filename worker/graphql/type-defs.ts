@@ -99,6 +99,14 @@ export const typeDefs = /* GraphQL */ `
     endDate: String
   }
 
+  input UpdateBudgetInput {
+    budgetId: ID!
+    name: String!
+    amountMinor: String!
+    startDate: String!
+    endDate: String
+  }
+
   input CreateCategoryInput {
     budgetId: ID!
     name: String!
@@ -149,13 +157,16 @@ export const typeDefs = /* GraphQL */ `
   type Query {
     dashboard: Dashboard!
     profile: Profile!
-    budgets: [Budget!]!
+    budgets(status: BudgetStatus = ACTIVE): [Budget!]!
     budget(id: ID!): Budget
     expenses(budgetId: ID, limit: Int = 100): [Expense!]!
   }
 
   type Mutation {
     createBudget(input: CreateBudgetInput!): Budget!
+    updateBudget(input: UpdateBudgetInput!): Budget!
+    archiveBudget(id: ID!): Budget!
+    restoreBudget(id: ID!): Budget!
     createCategory(input: CreateCategoryInput!): Category!
     updateCategory(input: UpdateCategoryInput!): Category!
     splitCategoryLimits(budgetId: ID!): Budget!

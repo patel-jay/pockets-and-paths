@@ -17,6 +17,7 @@ function daysBetween(from: string, to: string): number {
 function budgetStatus(budget: Budget, progress: number): string {
   const today = todayIso();
 
+  if (budget.status === 'ARCHIVED') return 'Archived';
   if (budget.phase === 'UPCOMING') {
     const days = Math.max(0, daysBetween(today, budget.startDate));
     return `Upcoming · ${days} ${days === 1 ? 'day' : 'days'} to go`;
@@ -40,13 +41,15 @@ export function BudgetCard({ budget, locale = 'en-IN' }: { budget: Budget; local
 
   return (
     <article
-      className={`budget-card budget-card--${tone}${budget.isOverBudget ? ' budget-card--over' : ''}`}
+      className={`budget-card budget-card--${tone}${budget.isOverBudget ? ' budget-card--over' : ''}${budget.status === 'ARCHIVED' ? ' budget-card--archived' : ''}`}
     >
       <div className="budget-card__topline">
         <span className="budget-card__icon">
           <Icon size={20} />
         </span>
-        <span className={`budget-card__status${budget.isOverBudget ? ' status-over' : ''}`}>
+        <span
+          className={`budget-card__status${budget.isOverBudget && budget.status !== 'ARCHIVED' ? ' status-over' : ''}`}
+        >
           {status}
         </span>
       </div>

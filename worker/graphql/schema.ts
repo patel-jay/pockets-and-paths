@@ -12,7 +12,9 @@ import {
   summarizeBalancesByCurrency,
   previewExpenseImpact,
   splitCategoryLimits,
+  setBudgetStatus,
   updateCategory,
+  updateBudget,
   updateProfile,
 } from '../data';
 import type {
@@ -21,7 +23,9 @@ import type {
   CreateCategoryInput,
   ExpenseImpactInput,
   RequestContext,
+  BudgetStatus,
   UpdateCategoryInput,
+  UpdateBudgetInput,
   UpdateProfileInput,
 } from '../types';
 import { mapBudget, mapCategory, mapExpense, mapMoney } from './mappers';
@@ -40,8 +44,8 @@ export const schema = createSchema<RequestContext>({
           locale: profile.locale,
         };
       },
-      budgets: async (_root, _args, context) => {
-        const budgets = await getBudgets(context.env.DB, context.viewerId);
+      budgets: async (_root, args: { status?: BudgetStatus }, context) => {
+        const budgets = await getBudgets(context.env.DB, context.viewerId, args.status ?? 'ACTIVE');
         return budgets.map((budget) => mapBudget(budget));
       },
       budget: async (_root, args: { id: string }, context) => {
@@ -56,7 +60,7 @@ export const schema = createSchema<RequestContext>({
         const [profile, budgets, recentExpenses] = await Promise.all([
           getProfile(context.env.DB, context.viewerId),
           getBudgets(context.env.DB, context.viewerId),
-          getExpenses(context.env.DB, context.viewerId, { limit: 5 }),
+          getExpenses(context.env.DB, context.viewerId, { budgetStatus: 'ACTIVE', limit: 5 }),
         ]);
         const today = utcTodayIso();
         const openBudgets = budgets.filter(
@@ -105,6 +109,12 @@ export const schema = createSchema<RequestContext>({
     Mutation: {
       createBudget: async (_root, args: { input: CreateBudgetInput }, context) =>
         mapBudget(await createBudget(context.env.DB, context.viewerId, args.input)),
+      updateBudget: async (_root, args: { input: UpdateBudgetInput }, context) =>
+        mapBudget(await updateBudget(context.env.DB, context.viewerId, args.input)),
+      archiveBudget: async (_root, args: { id: string }, context) =>
+        mapBudget(await setBudgetStatus(context.env.DB, context.viewerId, args.id, 'ARCHIVED')),
+      restoreBudget: async (_root, args: { id: string }, context) =>
+        mapBudget(await setBudgetStatus(context.env.DB, context.viewerId, args.id, 'ACTIVE')),
       createCategory: async (_root, args: { input: CreateCategoryInput }, context) => {
         const category = await createCategory(context.env.DB, context.viewerId, args.input);
         const budget = await getBudget(context.env.DB, context.viewerId, args.input.budgetId);

@@ -44,6 +44,7 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
 
   for (const target of [
     page.locator('.back-link'),
+    page.getByRole('button', { name: 'Edit budget' }),
     page.getByRole('button', { name: 'Split evenly' }),
     page.getByRole('button', { name: 'Add', exact: true }),
     page.getByRole('button', { name: /Edit .* category/ }).first(),

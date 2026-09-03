@@ -22,6 +22,14 @@ export interface CreateBudgetInput {
   endDate?: string | null;
 }
 
+export interface UpdateBudgetInput {
+  budgetId: string;
+  name: string;
+  amountMinor: string;
+  startDate: string;
+  endDate?: string | null;
+}
+
 export interface CreateCategoryInput {
   budgetId: string;
   name: string;

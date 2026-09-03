@@ -5,6 +5,7 @@ import type {
   CreateCategoryInput,
   ExpenseImpactInput,
   UpdateCategoryInput,
+  UpdateBudgetInput,
   UpdateProfileInput,
 } from '../../types/inputs';
 import { defineOperation } from './client';
@@ -49,6 +50,17 @@ export const budgetsQuery = defineOperation<{ budgets: Budget[] }>(/* GraphQL */
   ${budgetFragment}
   query Budgets {
     budgets {
+      ...BudgetFields
+    }
+  }
+`);
+
+export const archivedBudgetsQuery = defineOperation<{ archivedBudgets: Budget[] }>(/* GraphQL */ `
+  ${moneyFragment}
+  ${categoryFragment}
+  ${budgetFragment}
+  query ArchivedBudgets {
+    archivedBudgets: budgets(status: ARCHIVED) {
       ...BudgetFields
     }
   }
@@ -99,6 +111,41 @@ export const createBudgetMutation = defineOperation<
   mutation CreateBudget($input: CreateBudgetInput!) {
     createBudget(input: $input) {
       id
+    }
+  }
+`);
+
+export const updateBudgetMutation = defineOperation<
+  { updateBudget: Pick<Budget, 'id'> },
+  { input: UpdateBudgetInput }
+>(/* GraphQL */ `
+  mutation UpdateBudget($input: UpdateBudgetInput!) {
+    updateBudget(input: $input) {
+      id
+    }
+  }
+`);
+
+export const archiveBudgetMutation = defineOperation<
+  { archiveBudget: Pick<Budget, 'id' | 'status'> },
+  { id: string }
+>(/* GraphQL */ `
+  mutation ArchiveBudget($id: ID!) {
+    archiveBudget(id: $id) {
+      id
+      status
+    }
+  }
+`);
+
+export const restoreBudgetMutation = defineOperation<
+  { restoreBudget: Pick<Budget, 'id' | 'status'> },
+  { id: string }
+>(/* GraphQL */ `
+  mutation RestoreBudget($id: ID!) {
+    restoreBudget(id: $id) {
+      id
+      status
     }
   }
 `);

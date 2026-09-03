@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   budgetQuery,
   budgetsQuery,
+  archivedBudgetsQuery,
   dashboardQuery,
   expensesQuery,
   graphqlRequest,
@@ -27,6 +28,13 @@ export function useBudgets() {
   return useQuery({
     queryKey: queryKeys.budgets,
     queryFn: () => graphqlRequest(budgetsQuery),
+  });
+}
+
+export function useArchivedBudgets() {
+  return useQuery({
+    queryKey: [...queryKeys.budgets, 'archived'],
+    queryFn: () => graphqlRequest(archivedBudgetsQuery),
   });
 }
 

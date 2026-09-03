@@ -207,6 +207,19 @@
     align-items: flex-start;
   }
 
+  .detail-header {
+    flex-direction: column;
+  }
+
+  .detail-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+
+    .secondary-button {
+      flex: 1;
+    }
+  }
+
   .page-header .primary-button,
   .detail-header .primary-button {
     flex: none;
@@ -316,6 +329,21 @@
 
   .form-row {
     flex-direction: column;
+  }
+
+  .budget-lifecycle,
+  .archive-confirmation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .budget-lifecycle > button,
+  .archive-confirmation > div:last-child {
+    width: 100%;
+  }
+
+  .archive-confirmation > div:last-child button {
+    flex: 1;
   }
 
   .modal-layer {

@@ -1,6 +1,6 @@
 import type { BudgetRow, CategoryRow, CreateCategoryInput, UpdateCategoryInput } from '../types';
 import { DomainError } from '../errors';
-import { getBudget } from './budgets';
+import { getBudget, requireActiveBudget } from './budgets';
 import {
   optionalPositiveMinor,
   requireCategoryIcon,
@@ -35,6 +35,7 @@ export async function createCategory(
 ): Promise<CategoryRow> {
   const budget = await getBudget(db, viewerId, input.budgetId);
   if (!budget) throw new DomainError('Budget was not found.', 'NOT_FOUND');
+  requireActiveBudget(budget);
   const name = requireText(input.name, 'Category name', 40);
   const limitMinor = optionalPositiveMinor(input.limitMinor, 'Category limit');
   const color = requireColor(input.color);
@@ -64,6 +65,15 @@ export async function updateCategory(
   viewerId: string,
   input: UpdateCategoryInput,
 ): Promise<CategoryRow> {
+  const existing = await db
+    .prepare('SELECT budget_id FROM categories WHERE id = ? AND viewer_id = ?')
+    .bind(input.categoryId, viewerId)
+    .first<Pick<CategoryRow, 'budget_id'>>();
+  if (!existing) throw new DomainError('Category was not found.', 'NOT_FOUND');
+  const budget = await getBudget(db, viewerId, existing.budget_id);
+  if (!budget) throw new DomainError('Budget was not found.', 'NOT_FOUND');
+  requireActiveBudget(budget);
+
   const limitMinor = optionalPositiveMinor(input.limitMinor, 'Category limit');
   const color = requireColor(input.color);
   const icon = requireCategoryIcon(input.icon);
@@ -98,6 +108,7 @@ export async function splitCategoryLimits(
 ): Promise<BudgetRow> {
   const budget = await getBudget(db, viewerId, budgetId);
   if (!budget) throw new DomainError('Budget was not found.', 'NOT_FOUND');
+  requireActiveBudget(budget);
   const categories = await getCategories(db, viewerId, budgetId);
   if (categories.length === 0) {
     throw new DomainError('Add a category before splitting the budget.');

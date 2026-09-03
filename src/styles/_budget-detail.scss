@@ -26,6 +26,40 @@
   }
 }
 
+.detail-header__eyebrow,
+.detail-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.detail-header__actions {
+  flex: none;
+}
+
+.archived-label {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #596963;
+  background: #e4e9e6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.archived-budget-notice {
+  margin: -8px 0 22px;
+  padding: 13px 16px;
+  border: 1px solid rgba(99, 130, 168, 0.24);
+  border-radius: 13px;
+  color: #506560;
+  background: rgba(99, 130, 168, 0.08);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .detail-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -13,6 +13,7 @@ The Worker creates a browser-specific UUID after the published dummy credentials
 - A profile defines display name, locale, and the default currency for new budgets.
 - A budget is either `MONTHLY` or `TEMPORARY` and owns one currency.
 - A temporary budget requires start and end dates; a monthly budget remains independent of temporary plans.
+- Date-based phases (`ACTIVE`, `UPCOMING`, and `ENDED`) are calculated from the plan dates. Archiving is a separate manual status that preserves a read-only history and can be reversed.
 - A category belongs to exactly one budget and may carry an allocation limit.
 - An expense belongs to exactly one budget and one of that budget’s categories.
 - An expense stores integer minor units in its parent budget’s currency.

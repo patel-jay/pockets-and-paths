@@ -27,6 +27,9 @@ test('opens the isolated demo and reaches the primary budgeting flow', async ({ 
     .getByRole('link', { name: /monthly/i })
     .first()
     .click();
+  await page.getByRole('button', { name: 'Edit budget' }).click();
+  await expect(page.getByRole('dialog', { name: 'Edit budget' })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
   await page.getByRole('button', { name: 'Add expense' }).first().click();
   await expect(page.getByRole('dialog', { name: 'Add an expense' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel' }).click();

@@ -20,6 +20,7 @@ Pockets & Paths lets one person run a recurring monthly plan alongside any numbe
 ## Product highlights
 
 - Recurring monthly and fixed-date temporary budgets can be active together.
+- Budget names, totals, and dates can be edited; completed plans can be archived and restored.
 - Expenses inherit their budget’s currency, keeping entry and reporting unambiguous.
 - Optional category limits show spent, remaining, and overspent percentages without forcing every category into an allocation.
 - Expenses are never blocked by an exhausted plan; the app warns first, then records reality and shows the true overspend.
@@ -72,7 +73,7 @@ npm run test:e2e
 npm run build
 ```
 
-The unit suite covers currency support, parsing, spending positions, grouped currency balances, and relative seed dates. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including viewer isolation, ownership checks, budget-currency inheritance, mutations, database reads, and overspending. A browser smoke test verifies the primary sign-in and budgeting flow.
+The unit suite covers currency support, parsing, spending positions, grouped currency balances, and relative seed dates. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including viewer isolation, ownership checks, budget editing and archiving, currency inheritance, database reads, and overspending. A browser smoke test verifies the primary sign-in and budgeting flow.
 
 ## AI-assisted development
 

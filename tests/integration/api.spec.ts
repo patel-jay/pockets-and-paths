@@ -36,8 +36,12 @@ const budgetsQuery = `
     budgets {
       id
       name
+      type
+      status
       phase
       currency
+      startDate
+      endDate
       amount { minor currency }
       spent { minor currency }
       progress
@@ -47,6 +51,191 @@ const budgetsQuery = `
     }
   }
 `;
+
+test('updates, archives, and restores a budget without losing its history', async ({
+  playwright,
+}) => {
+  const api = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:4173' });
+
+  try {
+    await login(api);
+    await reset(api);
+    const initial = await graphql<{
+      budgets: {
+        id: string;
+        type: 'MONTHLY' | 'TEMPORARY';
+        categories: { id: string }[];
+      }[];
+    }>(api, budgetsQuery);
+    const temporaryBudget = initial.data!.budgets.find((budget) => budget.type === 'TEMPORARY')!;
+
+    const updated = await graphql<{
+      updateBudget: {
+        id: string;
+        name: string;
+        amount: { minor: string };
+        startDate: string;
+        endDate: string;
+        phase: string;
+      };
+    }>(
+      api,
+      `
+        mutation UpdateIntegrationBudget($input: UpdateBudgetInput!) {
+          updateBudget(input: $input) {
+            id
+            name
+            amount {
+              minor
+            }
+            startDate
+            endDate
+            phase
+          }
+        }
+      `,
+      {
+        input: {
+          budgetId: temporaryBudget.id,
+          name: 'Kyoto spring journey',
+          amountMinor: '410000',
+          startDate: '2031-03-10',
+          endDate: '2031-03-24',
+        },
+      },
+    );
+    expect(updated.errors).toBeUndefined();
+    expect(updated.data?.updateBudget).toMatchObject({
+      name: 'Kyoto spring journey',
+      amount: { minor: '410000' },
+      startDate: '2031-03-10',
+      endDate: '2031-03-24',
+      phase: 'UPCOMING',
+    });
+
+    const archived = await graphql<{ archiveBudget: { id: string; status: string } }>(
+      api,
+      `
+        mutation ArchiveIntegrationBudget($id: ID!) {
+          archiveBudget(id: $id) {
+            id
+            status
+          }
+        }
+      `,
+      { id: temporaryBudget.id },
+    );
+    expect(archived.data?.archiveBudget.status).toBe('ARCHIVED');
+
+    const [openBudgets, archivedBudgets] = await Promise.all([
+      graphql<{ budgets: { id: string }[] }>(api, budgetsQuery),
+      graphql<{ budgets: { id: string; status: string }[] }>(
+        api,
+        `
+          query ArchivedIntegrationBudgets {
+            budgets(status: ARCHIVED) {
+              id
+              status
+            }
+          }
+        `,
+      ),
+    ]);
+    expect(openBudgets.data?.budgets.some((budget) => budget.id === temporaryBudget.id)).toBe(
+      false,
+    );
+    expect(archivedBudgets.data?.budgets).toContainEqual({
+      id: temporaryBudget.id,
+      status: 'ARCHIVED',
+    });
+
+    const dashboard = await graphql<{
+      dashboard: {
+        openBudgets: { id: string }[];
+        recentExpenses: { budgetId: string }[];
+      };
+    }>(
+      api,
+      `
+        query DashboardWithoutArchivedBudget {
+          dashboard {
+            openBudgets {
+              id
+            }
+            recentExpenses {
+              budgetId
+            }
+          }
+        }
+      `,
+    );
+    expect(
+      dashboard.data?.dashboard.openBudgets.some((budget) => budget.id === temporaryBudget.id),
+    ).toBe(false);
+    expect(
+      dashboard.data?.dashboard.recentExpenses.some(
+        (expense) => expense.budgetId === temporaryBudget.id,
+      ),
+    ).toBe(false);
+
+    const blockedUpdate = await graphql(
+      api,
+      `
+        mutation UpdateArchivedBudget($input: UpdateBudgetInput!) {
+          updateBudget(input: $input) {
+            id
+          }
+        }
+      `,
+      {
+        input: {
+          budgetId: temporaryBudget.id,
+          name: 'Should not change',
+          amountMinor: '410000',
+          startDate: '2031-03-10',
+          endDate: '2031-03-24',
+        },
+      },
+    );
+    expect(blockedUpdate.errors?.[0]?.message).toContain('Restore this budget');
+
+    const blockedExpense = await graphql(
+      api,
+      `
+        mutation PreviewArchivedExpense($input: ExpenseImpactInput!) {
+          previewExpense(input: $input) {
+            budgetWillOverspend
+          }
+        }
+      `,
+      {
+        input: {
+          budgetId: temporaryBudget.id,
+          categoryId: temporaryBudget.categories[0].id,
+          amountMinor: '1000',
+        },
+      },
+    );
+    expect(blockedExpense.errors?.[0]?.message).toContain('Restore this budget');
+
+    const restored = await graphql<{ restoreBudget: { status: string } }>(
+      api,
+      `
+        mutation RestoreIntegrationBudget($id: ID!) {
+          restoreBudget(id: $id) {
+            status
+          }
+        }
+      `,
+      { id: temporaryBudget.id },
+    );
+    expect(restored.data?.restoreBudget.status).toBe('ACTIVE');
+    const reopened = await graphql<{ budgets: { id: string }[] }>(api, budgetsQuery);
+    expect(reopened.data?.budgets.some((budget) => budget.id === temporaryBudget.id)).toBe(true);
+  } finally {
+    await api.dispose();
+  }
+});
 
 test('keeps every seeded expense attached to a category in its budget', async ({ playwright }) => {
   const api = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:4173' });
