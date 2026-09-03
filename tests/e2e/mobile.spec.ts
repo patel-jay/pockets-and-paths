@@ -46,7 +46,7 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
     page.locator('.back-link'),
     page.getByRole('button', { name: 'Split evenly' }),
     page.getByRole('button', { name: 'Add', exact: true }),
-    page.getByRole('button', { name: /Edit .* limit/ }).first(),
+    page.getByRole('button', { name: /Edit .* category/ }).first(),
   ]) {
     const box = await target.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -61,6 +61,10 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
   await expect(categoryColor).toHaveValue('#2e7064');
   await categoryColor.fill('#e8795d');
   await expect(page.getByText('#E8795D')).toBeVisible();
+  const categoryIconPicker = page.getByRole('group', { name: 'Icon' });
+  const petIcon = categoryIconPicker.getByRole('radio', { name: 'Pets' });
+  await petIcon.check();
+  await expect(petIcon).toBeChecked();
   await categoryToggle.click();
 
   await page.locator('.detail-header .primary-button').click();

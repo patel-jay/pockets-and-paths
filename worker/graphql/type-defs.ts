@@ -9,6 +9,12 @@ export const typeDefs = /* GraphQL */ `
     ARCHIVED
   }
 
+  enum BudgetPhase {
+    ACTIVE
+    UPCOMING
+    ENDED
+  }
+
   type Money {
     minor: String!
     currency: String!
@@ -31,6 +37,7 @@ export const typeDefs = /* GraphQL */ `
     overspent: Money
     progress: Float
     color: String!
+    icon: String!
   }
 
   type Budget {
@@ -50,6 +57,7 @@ export const typeDefs = /* GraphQL */ `
     startDate: String!
     endDate: String
     status: BudgetStatus!
+    phase: BudgetPhase!
     categories: [Category!]!
     expenses(limit: Int = 50): [Expense!]!
   }
@@ -64,12 +72,14 @@ export const typeDefs = /* GraphQL */ `
     budgetName: String!
     categoryId: ID!
     categoryName: String!
+    categoryColor: String!
+    categoryIcon: String!
   }
 
   type Dashboard {
     profile: Profile!
     balances: [CurrencyBalance!]!
-    activeBudgets: [Budget!]!
+    openBudgets: [Budget!]!
     recentExpenses: [Expense!]!
   }
 
@@ -94,6 +104,14 @@ export const typeDefs = /* GraphQL */ `
     name: String!
     limitMinor: String
     color: String!
+    icon: String!
+  }
+
+  input UpdateCategoryInput {
+    categoryId: ID!
+    limitMinor: String
+    color: String!
+    icon: String!
   }
 
   input AddExpenseInput {
@@ -139,7 +157,7 @@ export const typeDefs = /* GraphQL */ `
   type Mutation {
     createBudget(input: CreateBudgetInput!): Budget!
     createCategory(input: CreateCategoryInput!): Category!
-    updateCategoryLimit(categoryId: ID!, limitMinor: String): Category!
+    updateCategory(input: UpdateCategoryInput!): Category!
     splitCategoryLimits(budgetId: ID!): Budget!
     addExpense(input: AddExpenseInput!): Expense!
     previewExpense(input: ExpenseImpactInput!): ExpenseImpact!

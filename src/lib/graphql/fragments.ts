@@ -10,6 +10,7 @@ export const categoryFragment = /* GraphQL */ `
     id
     name
     color
+    icon
     hasLimit
     progress
     limit {
@@ -37,6 +38,7 @@ export const budgetFragment = /* GraphQL */ `
     startDate
     endDate
     status
+    phase
     amount {
       ...MoneyFields
     }
@@ -75,6 +77,8 @@ export const expenseFragment = /* GraphQL */ `
     budgetName
     categoryId
     categoryName
+    categoryColor
+    categoryIcon
     amount {
       ...MoneyFields
     }

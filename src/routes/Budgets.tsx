@@ -36,7 +36,7 @@ export function BudgetsPage() {
         </div>
       ) : (
         <EmptyState
-          title="No active budgets"
+          title="No open budgets"
           copy="Create a monthly plan or a fixed-date journey budget to begin."
         />
       )}

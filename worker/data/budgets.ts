@@ -1,8 +1,11 @@
 import { DomainError } from '../errors';
+import {
+  defaultCategoryAppearances,
+  monthlyDefaultCategoryNames,
+  temporaryDefaultCategoryNames,
+} from '../../shared/category-presets';
 import type { BudgetRow, CreateBudgetInput } from '../types';
 import { requireCurrency, requireIsoDate, requirePositiveMinor, requireText } from './validation';
-
-const defaultCategoryColors = ['#2e7064', '#e8795d', '#d1a64c', '#6382a8', '#8774a8'];
 
 export async function getBudgets(db: D1Database, viewerId: string): Promise<BudgetRow[]> {
   const { results } = await db
@@ -74,18 +77,17 @@ export async function createBudget(
     .bind(id, viewerId, name, input.type, currency, amountMinor, 1_000_000, startDate, endDate, now)
     .run();
 
-  const defaultCategories =
-    input.type === 'MONTHLY'
-      ? ['Food', 'Housing', 'Transport', 'Leisure']
-      : ['Transport', 'Stay', 'Food', 'Experiences'];
+  const defaultCategoryNames =
+    input.type === 'MONTHLY' ? monthlyDefaultCategoryNames : temporaryDefaultCategoryNames;
 
   await db.batch(
-    defaultCategories.map((categoryName, index) =>
-      db
+    defaultCategoryNames.map((categoryName) => {
+      const appearance = defaultCategoryAppearances[categoryName];
+      return db
         .prepare(
           `INSERT INTO categories
-           (id, budget_id, viewer_id, name, limit_minor, limit_minor_optional, color, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, budget_id, viewer_id, name, limit_minor, limit_minor_optional, color, icon_key, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           crypto.randomUUID(),
@@ -94,10 +96,11 @@ export async function createBudget(
           categoryName,
           0,
           null,
-          defaultCategoryColors[index],
+          appearance.color,
+          appearance.icon,
           now,
-        ),
-    ),
+        );
+    }),
   );
 
   const budget = await getBudget(db, viewerId, id);

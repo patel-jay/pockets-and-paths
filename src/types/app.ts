@@ -1,3 +1,6 @@
+import type { CategoryIconKey } from '../../shared/category-icons';
+import type { BudgetPhase } from '../../shared/budget-phase';
+
 export type Money = {
   minor: string;
   currency: string;
@@ -20,6 +23,7 @@ export type Category = {
   overspent: Money | null;
   progress: number | null;
   color: string;
+  icon: CategoryIconKey;
 };
 
 export type Budget = {
@@ -39,6 +43,7 @@ export type Budget = {
   startDate: string;
   endDate: string | null;
   status: 'ACTIVE' | 'ARCHIVED';
+  phase: BudgetPhase;
   categories: Category[];
   expenses?: Expense[];
 };
@@ -53,6 +58,8 @@ export type Expense = {
   budgetName: string;
   categoryId: string;
   categoryName: string;
+  categoryColor: string;
+  categoryIcon: CategoryIconKey;
 };
 
 export type CurrencyBalance = {
@@ -66,7 +73,7 @@ export type DashboardData = {
   dashboard: {
     profile: Profile;
     balances: CurrencyBalance[];
-    activeBudgets: Budget[];
+    openBudgets: Budget[];
     recentExpenses: Expense[];
   };
 };

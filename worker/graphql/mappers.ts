@@ -1,4 +1,5 @@
 import { optionalSpendingPosition, spendingPosition } from '../budget-math';
+import { getBudgetPhase, utcTodayIso } from '../../shared/budget-phase';
 import type { BudgetRow, CategoryRow, ExpenseRow } from '../types';
 
 export function mapMoney(minor: number, currency: string) {
@@ -16,6 +17,8 @@ export function mapExpense(expense: ExpenseRow) {
     budgetName: expense.budget_name ?? '',
     categoryId: expense.category_id,
     categoryName: expense.category_name ?? '',
+    categoryColor: expense.category_color ?? '#2e7064',
+    categoryIcon: expense.category_icon ?? 'receipt',
   };
 }
 
@@ -33,10 +36,11 @@ export function mapCategory(category: CategoryRow, budgetCurrency: string) {
     overspent: position ? mapMoney(position.overspent, budgetCurrency) : null,
     progress: position?.progress ?? null,
     color: category.color,
+    icon: category.icon_key,
   };
 }
 
-export function mapBudget(budget: BudgetRow) {
+export function mapBudget(budget: BudgetRow, today = utcTodayIso()) {
   const spent = budget.spent_minor ?? 0;
   const allocated = budget.allocated_minor ?? 0;
   const position = spendingPosition(spent, budget.amount_minor);
@@ -58,5 +62,13 @@ export function mapBudget(budget: BudgetRow) {
     startDate: budget.start_date,
     endDate: budget.end_date,
     status: budget.status,
+    phase: getBudgetPhase(
+      {
+        type: budget.type,
+        startDate: budget.start_date,
+        endDate: budget.end_date,
+      },
+      today,
+    ),
   };
 }

@@ -16,7 +16,7 @@ export async function getExpenses(
   const { results } = await db
     .prepare(
       `SELECT e.*, b.name AS budget_name, b.reporting_currency AS budget_currency,
-              c.name AS category_name
+              c.name AS category_name, c.color AS category_color, c.icon_key AS category_icon
        FROM expenses e
        INNER JOIN budgets b ON b.id = e.budget_id
        INNER JOIN categories c ON c.id = e.category_id
@@ -104,7 +104,7 @@ export async function createExpense(
   const expense = await db
     .prepare(
       `SELECT e.*, b.name AS budget_name, b.reporting_currency AS budget_currency,
-              c.name AS category_name
+              c.name AS category_name, c.color AS category_color, c.icon_key AS category_icon
        FROM expenses e
        INNER JOIN budgets b ON b.id = e.budget_id
        INNER JOIN categories c ON c.id = e.category_id

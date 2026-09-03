@@ -1,3 +1,5 @@
+import type { CategoryIconKey } from '../../shared/category-icons';
+
 export type CreateBudgetInput = {
   name: string;
   type: 'MONTHLY' | 'TEMPORARY';
@@ -12,6 +14,14 @@ export type CreateCategoryInput = {
   name: string;
   limitMinor: string | null;
   color: string;
+  icon: CategoryIconKey;
+};
+
+export type UpdateCategoryInput = {
+  categoryId: string;
+  limitMinor: string | null;
+  color: string;
+  icon: CategoryIconKey;
 };
 
 export type AddExpenseInput = {

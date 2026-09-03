@@ -1,4 +1,5 @@
 import { createSchema } from 'graphql-yoga';
+import { getBudgetPhase, utcTodayIso } from '../../shared/budget-phase';
 import {
   createBudget,
   createCategory,
@@ -11,7 +12,7 @@ import {
   summarizeBalancesByCurrency,
   previewExpenseImpact,
   splitCategoryLimits,
-  updateCategoryLimit,
+  updateCategory,
   updateProfile,
 } from '../data';
 import type {
@@ -20,7 +21,7 @@ import type {
   CreateCategoryInput,
   ExpenseImpactInput,
   RequestContext,
-  UpdateCategoryLimitInput,
+  UpdateCategoryInput,
   UpdateProfileInput,
 } from '../types';
 import { mapBudget, mapCategory, mapExpense, mapMoney } from './mappers';
@@ -41,7 +42,7 @@ export const schema = createSchema<RequestContext>({
       },
       budgets: async (_root, _args, context) => {
         const budgets = await getBudgets(context.env.DB, context.viewerId);
-        return budgets.map(mapBudget);
+        return budgets.map((budget) => mapBudget(budget));
       },
       budget: async (_root, args: { id: string }, context) => {
         const budget = await getBudget(context.env.DB, context.viewerId, args.id);
@@ -57,6 +58,18 @@ export const schema = createSchema<RequestContext>({
           getBudgets(context.env.DB, context.viewerId),
           getExpenses(context.env.DB, context.viewerId, { limit: 5 }),
         ]);
+        const today = utcTodayIso();
+        const openBudgets = budgets.filter(
+          (budget) =>
+            getBudgetPhase(
+              {
+                type: budget.type,
+                startDate: budget.start_date,
+                endDate: budget.end_date,
+              },
+              today,
+            ) !== 'ENDED',
+        );
 
         return {
           profile: {
@@ -65,13 +78,13 @@ export const schema = createSchema<RequestContext>({
             defaultCurrency: profile.base_currency,
             locale: profile.locale,
           },
-          balances: summarizeBalancesByCurrency(budgets).map((balance) => ({
+          balances: summarizeBalancesByCurrency(openBudgets).map((balance) => ({
             currency: balance.currency,
             remaining: mapMoney(balance.remainingMinor, balance.currency),
             overspent: mapMoney(balance.overspentMinor, balance.currency),
             budgetCount: balance.budgetCount,
           })),
-          activeBudgets: budgets.map(mapBudget),
+          openBudgets: openBudgets.map((budget) => mapBudget(budget, today)),
           recentExpenses: recentExpenses.map(mapExpense),
         };
       },
@@ -98,8 +111,8 @@ export const schema = createSchema<RequestContext>({
         if (!budget) throw new Error('Budget was not found.');
         return mapCategory(category, budget.reporting_currency);
       },
-      updateCategoryLimit: async (_root, args: UpdateCategoryLimitInput, context) => {
-        const category = await updateCategoryLimit(context.env.DB, context.viewerId, args);
+      updateCategory: async (_root, args: { input: UpdateCategoryInput }, context) => {
+        const category = await updateCategory(context.env.DB, context.viewerId, args.input);
         const budget = await getBudget(context.env.DB, context.viewerId, category.budget_id);
         if (!budget) throw new Error('Budget was not found.');
         return mapCategory(category, budget.reporting_currency);

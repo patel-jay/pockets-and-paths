@@ -108,13 +108,20 @@
   }
 
   .summary-card {
-    grid-template-columns: 1fr;
-    gap: 22px;
-    padding: 28px;
+    padding: 24px 20px;
+  }
+
+  .summary-card__heading {
+    align-items: flex-start;
+  }
+
+  .summary-card__badge {
+    display: none;
   }
 
   .summary-card__balances {
     grid-template-columns: 1fr;
+    margin-top: 16px;
   }
 
   .budget-grid {
@@ -132,6 +139,19 @@
   .section-heading--compact {
     align-items: flex-end;
     padding-inline: 18px;
+  }
+
+  .section-heading__actions {
+    gap: 2px;
+
+    button {
+      width: 44px;
+      justify-content: center;
+
+      span {
+        display: none;
+      }
+    }
   }
 
   .expense-row {
@@ -290,6 +310,10 @@
     padding-inline: 18px;
   }
 
+  .category-appearance-fields {
+    grid-template-columns: 1fr;
+  }
+
   .form-row {
     flex-direction: column;
   }
@@ -309,9 +333,10 @@
   .summary-card__balance-heading small,
   .summary-card__overage,
   .summary-card__note,
+  .summary-card__eyebrow,
   .detail-summary span,
   .budget-card__numbers span,
-  .budget-card__numbers small,
+  .budget-card__status,
   .expense-row__copy small,
   .expense-row__amount small,
   .category-list article small,

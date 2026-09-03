@@ -14,10 +14,14 @@
   --ink-soft: #5f706c;
   --forest: #173b36;
   --mint: #cfe1d7;
+  --mint-bright: #83d9c8;
   --cream: #f3f0e9;
   --paper: #fffdf8;
   --coral: #e8795d;
   --coral-soft: #f6ddd3;
+  --sun: #ffd76e;
+  --purple: #a98ce6;
+  --blue: #86bff2;
   --danger: #a84735;
   --danger-soft: #f8e2dc;
   --line: #dad8cf;
@@ -37,7 +41,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 86% 8%, rgba(232, 121, 93, 0.08), transparent 24rem), var(--cream);
+    radial-gradient(circle at 86% 8%, rgba(232, 121, 93, 0.1), transparent 24rem),
+    radial-gradient(circle at 12% 92%, rgba(131, 217, 200, 0.1), transparent 26rem), var(--cream);
 }
 
 button,

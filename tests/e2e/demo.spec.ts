@@ -7,7 +7,7 @@ test('opens the isolated demo and reaches the primary budgeting flow', async ({ 
   await page.getByRole('button', { name: 'Enter demo account' }).click();
 
   await expect(page.getByRole('heading', { name: /Welcome back, Alex/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Your active budgets' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your plans' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Budgets', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Budgets' })).toBeVisible();

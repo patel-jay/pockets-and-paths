@@ -1,12 +1,12 @@
-import type {
-  BudgetRow,
-  CategoryRow,
-  CreateCategoryInput,
-  UpdateCategoryLimitInput,
-} from '../types';
+import type { BudgetRow, CategoryRow, CreateCategoryInput, UpdateCategoryInput } from '../types';
 import { DomainError } from '../errors';
 import { getBudget } from './budgets';
-import { optionalPositiveMinor, requireColor, requireText } from './validation';
+import {
+  optionalPositiveMinor,
+  requireCategoryIcon,
+  requireColor,
+  requireText,
+} from './validation';
 
 export async function getCategories(
   db: D1Database,
@@ -38,16 +38,17 @@ export async function createCategory(
   const name = requireText(input.name, 'Category name', 40);
   const limitMinor = optionalPositiveMinor(input.limitMinor, 'Category limit');
   const color = requireColor(input.color);
+  const icon = requireCategoryIcon(input.icon);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
   await db
     .prepare(
       `INSERT INTO categories
-       (id, budget_id, viewer_id, name, limit_minor, limit_minor_optional, color, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, budget_id, viewer_id, name, limit_minor, limit_minor_optional, color, icon_key, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(id, input.budgetId, viewerId, name, limitMinor ?? 0, limitMinor, color, now)
+    .bind(id, input.budgetId, viewerId, name, limitMinor ?? 0, limitMinor, color, icon, now)
     .run();
 
   const category = await db
@@ -58,19 +59,21 @@ export async function createCategory(
   return category;
 }
 
-export async function updateCategoryLimit(
+export async function updateCategory(
   db: D1Database,
   viewerId: string,
-  input: UpdateCategoryLimitInput,
+  input: UpdateCategoryInput,
 ): Promise<CategoryRow> {
   const limitMinor = optionalPositiveMinor(input.limitMinor, 'Category limit');
+  const color = requireColor(input.color);
+  const icon = requireCategoryIcon(input.icon);
   const result = await db
     .prepare(
       `UPDATE categories
-       SET limit_minor = ?, limit_minor_optional = ?
+       SET limit_minor = ?, limit_minor_optional = ?, color = ?, icon_key = ?
        WHERE id = ? AND viewer_id = ?`,
     )
-    .bind(limitMinor ?? 0, limitMinor, input.categoryId, viewerId)
+    .bind(limitMinor ?? 0, limitMinor, color, icon, input.categoryId, viewerId)
     .run();
   if (result.meta.changes !== 1) throw new DomainError('Category was not found.', 'NOT_FOUND');
 

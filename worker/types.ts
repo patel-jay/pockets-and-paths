@@ -1,3 +1,5 @@
+import type { CategoryIconKey } from '../shared/category-icons';
+
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
@@ -25,11 +27,14 @@ export interface CreateCategoryInput {
   name: string;
   limitMinor?: string | null;
   color: string;
+  icon: string;
 }
 
-export interface UpdateCategoryLimitInput {
+export interface UpdateCategoryInput {
   categoryId: string;
   limitMinor?: string | null;
+  color: string;
+  icon: string;
 }
 
 export interface ExpenseImpactInput {
@@ -82,6 +87,7 @@ export interface CategoryRow {
   limit_minor: number;
   limit_minor_optional: number | null;
   color: string;
+  icon_key: CategoryIconKey;
   created_at: string;
   spent_minor?: number;
 }
@@ -102,6 +108,8 @@ export interface ExpenseRow {
   budget_name?: string;
   budget_currency?: string;
   category_name?: string;
+  category_color?: string;
+  category_icon?: CategoryIconKey;
 }
 
 export interface ExpenseImpact {

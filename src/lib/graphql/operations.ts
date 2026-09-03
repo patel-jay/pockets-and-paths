@@ -4,6 +4,7 @@ import type {
   CreateBudgetInput,
   CreateCategoryInput,
   ExpenseImpactInput,
+  UpdateCategoryInput,
   UpdateProfileInput,
 } from '../../types/inputs';
 import { defineOperation } from './client';
@@ -32,7 +33,7 @@ export const dashboardQuery = defineOperation<DashboardData>(/* GraphQL */ `
           ...MoneyFields
         }
       }
-      activeBudgets {
+      openBudgets {
         ...BudgetFields
       }
       recentExpenses {
@@ -151,12 +152,12 @@ export const createCategoryMutation = defineOperation<
   }
 `);
 
-export const updateCategoryLimitMutation = defineOperation<
-  { updateCategoryLimit: { id: string } },
-  { categoryId: string; limitMinor: string | null }
+export const updateCategoryMutation = defineOperation<
+  { updateCategory: { id: string } },
+  { input: UpdateCategoryInput }
 >(/* GraphQL */ `
-  mutation UpdateCategoryLimit($categoryId: ID!, $limitMinor: String) {
-    updateCategoryLimit(categoryId: $categoryId, limitMinor: $limitMinor) {
+  mutation UpdateCategory($input: UpdateCategoryInput!) {
+    updateCategory(input: $input) {
       id
     }
   }

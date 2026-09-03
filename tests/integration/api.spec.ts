@@ -36,6 +36,7 @@ const budgetsQuery = `
     budgets {
       id
       name
+      phase
       currency
       amount { minor currency }
       spent { minor currency }
@@ -46,6 +47,182 @@ const budgetsQuery = `
     }
   }
 `;
+
+test('keeps every seeded expense attached to a category in its budget', async ({ playwright }) => {
+  const api = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:4173' });
+
+  try {
+    await login(api);
+    await reset(api);
+    const result = await graphql<{
+      budgets: {
+        name: string;
+        phase: 'ACTIVE' | 'UPCOMING' | 'ENDED';
+        categories: { id: string; name: string; icon: string }[];
+        expenses: {
+          title: string;
+          categoryId: string;
+          categoryName: string;
+          categoryIcon: string;
+        }[];
+      }[];
+      dashboard: {
+        openBudgets: { name: string; phase: 'ACTIVE' | 'UPCOMING' }[];
+        recentExpenses: { categoryName: string }[];
+      };
+    }>(
+      api,
+      `
+        query SeededExpenseCategories {
+          budgets {
+            name
+            phase
+            categories {
+              id
+              name
+              icon
+            }
+            expenses {
+              title
+              categoryId
+              categoryName
+              categoryIcon
+            }
+          }
+          dashboard {
+            openBudgets {
+              name
+              phase
+            }
+            recentExpenses {
+              categoryName
+            }
+          }
+        }
+      `,
+    );
+
+    expect(result.errors).toBeUndefined();
+    const monthlyPlan = result.data!.budgets.find((budget) => budget.name.endsWith(' monthly'));
+    const journeyPlan = result.data!.budgets.find((budget) => budget.name === 'Japan journey');
+    expect(monthlyPlan?.phase).toBe('ACTIVE');
+    expect(journeyPlan?.phase).toBe('UPCOMING');
+    expect(result.data!.dashboard.openBudgets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: monthlyPlan?.name, phase: 'ACTIVE' }),
+        expect.objectContaining({ name: 'Japan journey', phase: 'UPCOMING' }),
+      ]),
+    );
+
+    for (const budget of result.data!.budgets) {
+      const categories = new Map(budget.categories.map((category) => [category.id, category]));
+      for (const expense of budget.expenses) {
+        const category = categories.get(expense.categoryId);
+        expect(category?.name).toBe(expense.categoryName);
+        expect(category?.icon).toBe(expense.categoryIcon);
+      }
+    }
+
+    const cinemaNight = result
+      .data!.budgets.flatMap((budget) => budget.expenses)
+      .find((expense) => expense.title === 'Cinema night');
+    expect(cinemaNight?.categoryName).toBe('Leisure');
+    expect(cinemaNight?.categoryIcon).toBe('entertainment');
+
+    const recentCategories = result.data!.dashboard.recentExpenses.map(
+      (expense) => expense.categoryName,
+    );
+    expect(new Set(recentCategories).size).toBe(recentCategories.length);
+  } finally {
+    await api.dispose();
+  }
+});
+
+test('persists and validates a category icon choice', async ({ playwright }) => {
+  const api = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:4173' });
+
+  try {
+    await login(api);
+    await reset(api);
+    const initial = await graphql<{ budgets: { id: string }[] }>(api, budgetsQuery);
+    const budgetId = initial.data!.budgets[0].id;
+    const created = await graphql<{
+      createCategory: { id: string; color: string; icon: string };
+    }>(
+      api,
+      `
+        mutation CreateIconCategory($input: CreateCategoryInput!) {
+          createCategory(input: $input) {
+            id
+            color
+            icon
+          }
+        }
+      `,
+      {
+        input: {
+          budgetId,
+          name: 'Pet care',
+          limitMinor: null,
+          color: '#6382a8',
+          icon: 'pets',
+        },
+      },
+    );
+
+    expect(created.errors).toBeUndefined();
+    expect(created.data?.createCategory).toMatchObject({ color: '#6382a8', icon: 'pets' });
+
+    const updated = await graphql<{
+      updateCategory: { color: string; icon: string };
+    }>(
+      api,
+      `
+        mutation UpdateIconCategory($input: UpdateCategoryInput!) {
+          updateCategory(input: $input) {
+            color
+            icon
+          }
+        }
+      `,
+      {
+        input: {
+          categoryId: created.data!.createCategory.id,
+          limitMinor: null,
+          color: '#e8795d',
+          icon: 'health',
+        },
+      },
+    );
+
+    expect(updated.errors).toBeUndefined();
+    expect(updated.data?.updateCategory).toEqual({ color: '#e8795d', icon: 'health' });
+
+    const invalid = await graphql(
+      api,
+      `
+        mutation InvalidIconCategory($input: CreateCategoryInput!) {
+          createCategory(input: $input) {
+            id
+          }
+        }
+      `,
+      {
+        input: {
+          budgetId,
+          name: 'Invalid appearance',
+          limitMinor: null,
+          color: '#2e7064',
+          icon: 'not-an-icon',
+        },
+      },
+    );
+    expect(invalid.data).toBeNull();
+    expect(invalid.errors?.[0]?.message).toContain('supported category icon');
+  } finally {
+    await api.dispose();
+  }
+});
 
 test('keeps each browser viewer isolated across database queries and mutations', async ({
   playwright,

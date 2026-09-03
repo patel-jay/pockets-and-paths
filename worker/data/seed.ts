@@ -1,8 +1,12 @@
+import type { CategoryIconKey } from '../../shared/category-icons';
+import { defaultCategoryAppearances } from '../../shared/category-presets';
+
 type SeedCategory = {
   id: string;
   name: string;
   limit: number | null;
   color: string;
+  icon: CategoryIconKey;
 };
 
 function isoDate(date: Date): string {
@@ -51,16 +55,56 @@ export async function seedViewer(
   const monthlyBudgetId = crypto.randomUUID();
   const tripBudgetId = crypto.randomUUID();
   const monthlyCategories: SeedCategory[] = [
-    { id: crypto.randomUUID(), name: 'Food', limit: 3_200_000, color: '#2e7064' },
-    { id: crypto.randomUUID(), name: 'Housing', limit: 4_500_000, color: '#6382a8' },
-    { id: crypto.randomUUID(), name: 'Utilities', limit: 1_500_000, color: '#d1a64c' },
-    { id: crypto.randomUUID(), name: 'Leisure', limit: null, color: '#e8795d' },
+    {
+      id: crypto.randomUUID(),
+      name: 'Food',
+      limit: 3_200_000,
+      ...defaultCategoryAppearances.Food,
+    },
+    {
+      id: crypto.randomUUID(),
+      name: 'Housing',
+      limit: 4_500_000,
+      ...defaultCategoryAppearances.Housing,
+    },
+    {
+      id: crypto.randomUUID(),
+      name: 'Utilities',
+      limit: 1_500_000,
+      ...defaultCategoryAppearances.Utilities,
+    },
+    {
+      id: crypto.randomUUID(),
+      name: 'Leisure',
+      limit: null,
+      ...defaultCategoryAppearances.Leisure,
+    },
   ];
   const tripCategories: SeedCategory[] = [
-    { id: crypto.randomUUID(), name: 'Transport', limit: 95_000, color: '#6382a8' },
-    { id: crypto.randomUUID(), name: 'Stay', limit: 120_000, color: '#8774a8' },
-    { id: crypto.randomUUID(), name: 'Food', limit: 70_000, color: '#e8795d' },
-    { id: crypto.randomUUID(), name: 'Experiences', limit: null, color: '#d1a64c' },
+    {
+      id: crypto.randomUUID(),
+      name: 'Transport',
+      limit: 95_000,
+      ...defaultCategoryAppearances.Transport,
+    },
+    {
+      id: crypto.randomUUID(),
+      name: 'Stay',
+      limit: 120_000,
+      ...defaultCategoryAppearances.Stay,
+    },
+    {
+      id: crypto.randomUUID(),
+      name: 'Food',
+      limit: 70_000,
+      ...defaultCategoryAppearances.Food,
+    },
+    {
+      id: crypto.randomUUID(),
+      name: 'Experiences',
+      limit: null,
+      ...defaultCategoryAppearances.Experiences,
+    },
   ];
   const expenses = [
     {
@@ -93,7 +137,7 @@ export async function seedViewer(
     {
       budgetId: monthlyBudgetId,
       categoryId: monthlyCategories[3].id,
-      title: 'Weekend dinner',
+      title: 'Cinema night',
       amountMinor: 195_000,
       currency: 'INR',
       converted: 195_000,
@@ -168,8 +212,8 @@ export async function seedViewer(
       db
         .prepare(
           `INSERT INTO categories
-           (id, budget_id, viewer_id, name, limit_minor, limit_minor_optional, color, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, budget_id, viewer_id, name, limit_minor, limit_minor_optional, color, icon_key, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           category.id,
@@ -179,6 +223,7 @@ export async function seedViewer(
           category.limit ?? 0,
           category.limit,
           category.color,
+          category.icon,
           timestamp,
         ),
     ),
@@ -186,8 +231,8 @@ export async function seedViewer(
       db
         .prepare(
           `INSERT INTO categories
-           (id, budget_id, viewer_id, name, limit_minor, limit_minor_optional, color, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, budget_id, viewer_id, name, limit_minor, limit_minor_optional, color, icon_key, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           category.id,
@@ -197,6 +242,7 @@ export async function seedViewer(
           category.limit ?? 0,
           category.limit,
           category.color,
+          category.icon,
           timestamp,
         ),
     ),

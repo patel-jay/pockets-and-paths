@@ -1,6 +1,6 @@
-import { ReceiptText } from 'lucide-react';
 import { formatDate, formatMoney } from '../lib/money';
 import type { Expense } from '../types/app';
+import { CategoryIcon } from './CategoryIcon';
 
 export function ExpenseList({
   expenses,
@@ -14,8 +14,14 @@ export function ExpenseList({
       {expenses.map((expense) => {
         return (
           <article className="expense-row" key={expense.id}>
-            <span className="expense-row__icon">
-              <ReceiptText size={19} />
+            <span
+              className="expense-row__icon"
+              style={{
+                color: expense.categoryColor,
+                backgroundColor: `${expense.categoryColor}1f`,
+              }}
+            >
+              <CategoryIcon icon={expense.categoryIcon} size={19} />
             </span>
             <span className="expense-row__copy">
               <strong>{expense.title}</strong>

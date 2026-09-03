@@ -1,5 +1,6 @@
 import { DomainError } from '../errors';
 import { isSupportedBudgetCurrency } from '../money';
+import { isCategoryIconKey, type CategoryIconKey } from '../../shared/category-icons';
 
 export function requireText(value: string, label: string, maxLength: number): string {
   const normalized = value.trim();
@@ -56,6 +57,13 @@ export function requireCurrency(value: string): string {
 export function requireColor(value: string): string {
   if (!/^#[0-9a-f]{6}$/i.test(value)) throw new DomainError('Choose a valid category color.');
   return value.toLowerCase();
+}
+
+export function requireCategoryIcon(value: string): CategoryIconKey {
+  if (!isCategoryIconKey(value)) {
+    throw new DomainError('Choose a supported category icon.');
+  }
+  return value;
 }
 
 export function requireLocale(value: string): string {

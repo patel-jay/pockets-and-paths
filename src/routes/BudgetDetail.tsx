@@ -4,6 +4,8 @@ import { ArrowLeft, Pencil, Plus, Shuffle } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { Link, useParams } from 'react-router';
 import { EmptyState, ErrorState, LoadingState } from '../components/AsyncState';
+import { CategoryIcon } from '../components/CategoryIcon';
+import { CategoryIconPicker } from '../components/CategoryIconPicker';
 import { ExpenseList } from '../components/ExpenseList';
 import { CategoryLimitModal } from '../components/CategoryLimitModal';
 import { useAppActions } from '../lib/app-actions';
@@ -16,6 +18,11 @@ import { formatBudgetPeriod, formatMoney, parseMajorToMinor } from '../lib/money
 import { queryKeys, useBudget, useProfile } from '../lib/queries';
 import type { Category } from '../types/app';
 import type { CreateCategoryInput } from '../types/inputs';
+import {
+  defaultCategoryIcon,
+  suggestCategoryIcon,
+  type CategoryIconKey,
+} from '../../shared/category-icons';
 
 const defaultCategoryColor = '#2e7064';
 
@@ -27,6 +34,8 @@ export function BudgetDetailPage() {
   const { openExpense } = useAppActions();
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [categoryColor, setCategoryColor] = useState(defaultCategoryColor);
+  const [categoryIcon, setCategoryIcon] = useState<CategoryIconKey>(defaultCategoryIcon);
+  const [iconSelectedManually, setIconSelectedManually] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formError, setFormError] = useState('');
   const mutation = useMutation({
@@ -35,6 +44,8 @@ export function BudgetDetailPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.budget(budgetId) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.budgets });
       setCategoryColor(defaultCategoryColor);
+      setCategoryIcon(defaultCategoryIcon);
+      setIconSelectedManually(false);
       setShowCategoryForm(false);
     },
   });
@@ -67,10 +78,21 @@ export function BudgetDetailPage() {
         name: String(form.get('name')).trim(),
         limitMinor: limit ? parseMajorToMinor(limit, budget.currency) : null,
         color: String(form.get('color')),
+        icon: categoryIcon,
       });
     } catch (caught) {
       setFormError(caught instanceof Error ? caught.message : 'Check the category details.');
     }
+  };
+
+  const toggleCategoryForm = () => {
+    if (showCategoryForm) {
+      setCategoryColor(defaultCategoryColor);
+      setCategoryIcon(defaultCategoryIcon);
+      setIconSelectedManually(false);
+      setFormError('');
+    }
+    setShowCategoryForm(!showCategoryForm);
   };
 
   const splitEvenly = () => {
@@ -145,11 +167,7 @@ export function BudgetDetailPage() {
                 <Shuffle size={15} />
                 {splitMutation.isPending ? 'Splitting…' : 'Split evenly'}
               </button>
-              <button
-                className="text-button"
-                type="button"
-                onClick={() => setShowCategoryForm((shown) => !shown)}
-              >
+              <button className="text-button" type="button" onClick={toggleCategoryForm}>
                 <Plus size={16} />
                 Add
               </button>
@@ -168,6 +186,11 @@ export function BudgetDetailPage() {
                 maxLength={40}
                 placeholder="Category name"
                 aria-label="Category name"
+                onChange={(event) => {
+                  if (!iconSelectedManually) {
+                    setCategoryIcon(suggestCategoryIcon(event.target.value));
+                  }
+                }}
               />
               <input
                 name="limit"
@@ -188,6 +211,14 @@ export function BudgetDetailPage() {
               <button className="secondary-button" type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? 'Adding…' : 'Add'}
               </button>
+              <CategoryIconPicker
+                name="new-category-icon"
+                value={categoryIcon}
+                onChange={(icon) => {
+                  setCategoryIcon(icon);
+                  setIconSelectedManually(true);
+                }}
+              />
               {(formError || mutation.error) && (
                 <p className="form-error">{formError || (mutation.error as Error).message}</p>
               )}
@@ -240,7 +271,15 @@ export function BudgetDetailPage() {
                 const categoryOver = category.overspent && Number(category.overspent.minor) > 0;
                 return (
                   <article key={category.id} className={categoryOver ? 'category-row--over' : ''}>
-                    <span className="category-dot" style={{ background: category.color }} />
+                    <span
+                      className="category-symbol"
+                      style={{
+                        color: category.color,
+                        backgroundColor: `${category.color}1f`,
+                      }}
+                    >
+                      <CategoryIcon icon={category.icon} size={17} />
+                    </span>
                     <div>
                       <strong>{category.name}</strong>
                       <small>
@@ -270,7 +309,7 @@ export function BudgetDetailPage() {
                     <button
                       className="category-edit"
                       type="button"
-                      aria-label={`Edit ${category.name} limit`}
+                      aria-label={`Edit ${category.name} category`}
                       onClick={() => setEditingCategory(category)}
                     >
                       <Pencil size={14} />
