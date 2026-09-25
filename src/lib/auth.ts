@@ -5,7 +5,30 @@ export const demoCredentials = {
   password: 'pathfinder',
 } as const;
 
-export type AuthSession = { authenticated: false } | { authenticated: true; profile: Profile };
+export type AuthMode = 'account' | 'demo';
+
+export type AuthSession =
+  | { authenticated: false }
+  | {
+      authenticated: true;
+      mode: AuthMode;
+      email?: string;
+      profile: Profile;
+    };
+
+export type AuthConfig = {
+  personalAccountsEnabled: boolean;
+  registrationEnabled: boolean;
+  turnstileSiteKey: string | null;
+};
+
+export type RegistrationInput = {
+  displayName: string;
+  email: string;
+  password: string;
+  inviteCode: string;
+  turnstileToken: string;
+};
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -14,8 +37,12 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'content-type': 'application/json', ...init?.headers },
   });
   const result = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw new Error(result.error ?? 'The demo session could not be updated.');
+  if (!response.ok) throw new Error(result.error ?? 'Your session could not be updated.');
   return result;
+}
+
+export function getAuthConfig(): Promise<AuthConfig> {
+  return authRequest('/api/auth/config');
 }
 
 export function getAuthSession(): Promise<AuthSession> {
@@ -29,7 +56,21 @@ export function loginToDemo(email: string, password: string): Promise<AuthSessio
   });
 }
 
-export function logoutOfDemo(): Promise<AuthSession> {
+export function loginToAccount(email: string, password: string): Promise<AuthSession> {
+  return authRequest('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function registerAccount(input: RegistrationInput): Promise<AuthSession> {
+  return authRequest('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function logout(): Promise<AuthSession> {
   return authRequest('/api/auth/logout', { method: 'POST', body: '{}' });
 }
 

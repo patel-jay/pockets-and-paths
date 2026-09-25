@@ -3,6 +3,10 @@ import type { CategoryIconKey } from '../shared/category-icons';
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
+  AUTH_PEPPER?: string;
+  REGISTRATION_INVITE_CODE?: string;
+  TURNSTILE_SITE_KEY?: string;
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 export interface RequestContext {

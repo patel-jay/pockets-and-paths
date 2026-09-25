@@ -104,8 +104,8 @@
 
 .login-card {
   display: grid;
-  width: min(100%, 430px);
-  gap: 17px;
+  width: min(100%, 460px);
+  gap: 15px;
 
   h2 {
     margin: -8px 0 0;
@@ -114,6 +114,42 @@
     font-weight: 750;
     letter-spacing: -0.04em;
   }
+}
+
+.login-card__form {
+  display: grid;
+  gap: 17px;
+}
+
+.login-card__form--register {
+  gap: 14px;
+}
+
+.login-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(24, 51, 48, 0.08);
+  border-radius: 13px;
+  background: #e9ece6;
+
+  button {
+    min-height: 39px;
+    border: 0;
+    border-radius: 9px;
+    color: var(--ink-soft);
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 750;
+  }
+}
+
+.login-mode-switch .login-mode-switch__active {
+  color: var(--forest);
+  background: var(--paper);
+  box-shadow: 0 3px 12px rgba(24, 51, 48, 0.08);
 }
 
 .login-card__icon {
@@ -131,6 +167,41 @@
   color: var(--ink-soft);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.login-card__link {
+  justify-self: center;
+  border: 0;
+  padding: 3px;
+  color: #2e7064;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-configuration-note {
+  display: grid;
+  padding: 14px 15px;
+  gap: 8px;
+  border: 1px solid rgba(99, 130, 168, 0.22);
+  border-radius: 12px;
+  color: var(--ink-soft);
+  background: rgba(99, 130, 168, 0.08);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.turnstile-field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+
+  > div:first-child {
+    min-height: 65px;
+  }
 }
 
 .demo-credentials {

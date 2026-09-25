@@ -27,6 +27,7 @@ Pockets & Paths lets one person run a recurring monthly plan alongside any numbe
 - The dashboard groups remaining and overspent balances by currency instead of presenting a misleading converted total.
 - Responsive SPA navigation and an installable PWA shell work across phones and larger screens.
 - A dummy login opens an isolated, cookie-backed demo profile for each browser, with logout and reset controls.
+- Invite-only personal accounts keep durable data available across devices without opening public registration.
 
 ## Stack
 
@@ -56,6 +57,8 @@ npm run dev
 
 Open `http://127.0.0.1:4173` on the development computer. The development command applies pending D1 migrations before starting. Sign in with `demo@pocketsandpaths.app` and password `pathfinder`; the Worker seeds a realistic monthly budget plus a temporary Japan budget for each isolated browser session.
 
+For local personal-account testing, copy `.dev.vars.example` to `.dev.vars`. The checked-in example uses Cloudflare's published Turnstile test keys; choose your own local invite code and long authentication pepper. Registration creates an empty personal profile rather than copying the demo data.
+
 To preview the app from another device on the same trusted Wi-Fi network, open the `Network` URL printed by Vite (for example, `http://192.168.x.x:4173`). If it is unavailable, allow Node.js through the computer's firewall for private networks. The local IP address may change between connections.
 
 Seed dates are generated relative to the current month, so a newly reset demo always opens with a current monthly plan and an upcoming temporary journey.
@@ -73,7 +76,7 @@ npm run test:e2e
 npm run build
 ```
 
-The unit suite covers currency support, parsing, spending positions, grouped currency balances, and relative seed dates. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including viewer isolation, ownership checks, budget editing and archiving, currency inheritance, database reads, and overspending. A browser smoke test verifies the primary sign-in and budgeting flow.
+The unit suite covers currency support, parsing, spending positions, grouped currency balances, relative seed dates, and password verification. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including invite-only registration, account sessions, demo isolation, ownership checks, budget editing and archiving, currency inheritance, database reads, and overspending. A browser smoke test verifies the primary demo sign-in and budgeting flow.
 
 ## AI-assisted development
 
@@ -92,10 +95,14 @@ The repository is configured for a Cloudflare Worker with D1, but no production 
 1. Create a D1 database.
 2. Replace the placeholder `database_id` in `wrangler.jsonc`.
 3. Apply the checked-in migrations to the target database.
-4. Build and deploy the Worker through Cloudflare.
+4. Create a production Turnstile widget for the deployed hostname.
+5. Add `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `REGISTRATION_INVITE_CODE`, and `AUTH_PEPPER` as Worker variables/secrets. Use long, unique values for the invite code and pepper; never deploy the published Turnstile test keys.
+6. Build and deploy the Worker through Cloudflare.
+
+The invite code is only needed when creating an account. After registration, use the personal email and password normally. The current MVP intentionally has no email verification or password-recovery workflow, so retain the credentials and authentication secrets safely.
 
 See [architecture](docs/architecture.md), [product decisions](docs/product-decisions.md), and [security notes](docs/security.md) for the reasoning behind the implementation. The project is available under the [MIT License](LICENSE).
 
 ## Current scope
 
-This is a focused portfolio MVP. The visible dummy login is a browser-isolated preview flow, not production authentication. External identity, cross-currency expense conversion, collaborative budgets, bank imports, and a durable offline mutation queue are intentionally outside the current release. The PWA caches the application shell; GraphQL data remains network-first.
+This is a focused portfolio MVP. Visitors can use the browser-isolated demo, while the owner can create an invite-only personal account protected by Turnstile and request throttling. Email verification, password recovery, multi-factor authentication, external identity, cross-currency expense conversion, collaborative budgets, bank imports, and a durable offline mutation queue are intentionally outside the current release. The PWA caches the application shell; GraphQL data remains network-first.

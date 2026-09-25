@@ -6,7 +6,9 @@ Pockets & Paths is a client-rendered React Router application served by the same
 
 The React client does not import server modules. It communicates only through typed GraphQL operations in `src/lib/graphql/`. Each operation carries its result and variable types, while reusable fragments keep budget, category, expense, and money selections consistent. TanStack Query owns request caching and invalidation after mutations.
 
-The Worker creates a browser-specific UUID after the published dummy credentials are accepted. HTTP-only, same-site cookies retain the isolated viewer and its short-lived demo-authenticated state. Logout clears the authenticated state without deleting the sandbox; reset deletes and reseeds only that viewer’s records. Every GraphQL query and mutation scopes its SQL by that viewer ID. D1 queries use prepared statements, and foreign keys enforce budget/category relationships.
+The Worker supports two identities. Published demo credentials create a browser-specific UUID and seed an isolated sandbox. Invite-only registration creates a durable account whose stable UUID owns an initially empty profile. Both modes use HTTP-only, same-site cookies, and every GraphQL query and mutation scopes its SQL by the resolved viewer ID. Logout revokes a personal session or clears the demo-authenticated state; reset is restricted to demo sessions and reseeds only that sandbox.
+
+Personal passwords are salted and hashed with PBKDF2-HMAC-SHA-256, then protected with a server-held pepper. Only a SHA-256 digest of each random account-session token is stored in D1. Registration requires a private invite code plus server-side Cloudflare Turnstile verification, and database-backed throttles limit repeated registration and sign-in attempts. The Turnstile secret, invite code, and password pepper remain runtime secrets rather than client configuration.
 
 ## Domain model
 
@@ -46,8 +48,8 @@ Migration `0003` enforces the one-currency-per-budget invariant for new and upda
 
 ### Testing
 
-Vitest covers deterministic domain calculations and relative seed timelines. Playwright API tests run against the real local Worker and D1 database to exercise authentication boundaries, viewer-scoped queries, ownership checks, GraphQL mutations, and overspending. A separate browser test covers the main portfolio journey without letting Playwright collect the unit-test files.
+Vitest covers deterministic domain calculations, relative seed timelines, and password verification. Playwright API tests run against the real local Worker and D1 database to exercise invite-only registration, session restoration, demo/account boundaries, viewer-scoped queries, ownership checks, GraphQL mutations, and overspending. A separate browser test covers the main portfolio journey without letting Playwright collect the unit-test files.
 
 ## Production evolution
 
-The next production steps would be external identity, rate limiting and account recovery, pagination, structured observability, and background synchronization for queued offline expenses. Cross-currency spending would require an explicit product design before adding a rate provider.
+The next production steps would be verified-email delivery, password recovery or managed identity, multi-factor authentication, pagination, structured observability, and background synchronization for queued offline expenses. Cross-currency spending would require an explicit product design before adding a rate provider.

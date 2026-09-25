@@ -10,7 +10,7 @@ import { useAuth } from '../lib/auth-context';
 import type { UpdateProfileInput } from '../types/inputs';
 
 export function SettingsPage() {
-  const { logout, reset } = useAuth();
+  const { email, logout, mode, reset } = useAuth();
   const profile = useProfile();
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
@@ -109,13 +109,20 @@ export function SettingsPage() {
               </select>
             </label>
           </div>
-          <div className="notice-card">
-            <strong>Local demo profile</strong>
-            <p>
-              This app creates an anonymous profile for this browser. No email address or
-              third-party sign-in is required.
-            </p>
-          </div>
+          {mode === 'demo' ? (
+            <div className="notice-card">
+              <strong>Local demo profile</strong>
+              <p>
+                This app creates an anonymous profile for this browser. No email address or
+                third-party sign-in is required.
+              </p>
+            </div>
+          ) : (
+            <div className="notice-card">
+              <strong>Personal account</strong>
+              <p>Signed in as {email}. Your plans follow this account across supported devices.</p>
+            </div>
+          )}
           {mutation.error && (
             <p className="form-error" role="alert">
               {(mutation.error as Error).message}
@@ -134,25 +141,31 @@ export function SettingsPage() {
           </div>
         </form>
       </section>
-      <section className="settings-card session-card" aria-labelledby="demo-session-title">
+      <section className="settings-card session-card" aria-labelledby="session-title">
         <div>
-          <p className="eyebrow">Browser sandbox</p>
-          <h2 id="demo-session-title">Demo session</h2>
-          <p>
-            Your data is isolated from other visitors. Reset it to the original examples or sign out
-            without deleting it.
-          </p>
+          <p className="eyebrow">{mode === 'demo' ? 'Browser sandbox' : 'Account access'}</p>
+          <h2 id="session-title">{mode === 'demo' ? 'Demo session' : 'Personal session'}</h2>
+          {mode === 'demo' ? (
+            <p>
+              Your data is isolated from other visitors. Reset it to the original examples or sign
+              out without deleting it.
+            </p>
+          ) : (
+            <p>Sign out on this device without deleting your budgets, categories, or expenses.</p>
+          )}
         </div>
         <div className="session-card__actions">
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={sessionPending !== null}
-            onClick={() => void resetSession()}
-          >
-            <RotateCcw size={16} />
-            {sessionPending === 'reset' ? 'Resetting…' : 'Reset demo data'}
-          </button>
+          {mode === 'demo' && (
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={sessionPending !== null}
+              onClick={() => void resetSession()}
+            >
+              <RotateCcw size={16} />
+              {sessionPending === 'reset' ? 'Resetting…' : 'Reset demo data'}
+            </button>
+          )}
           <button
             className="danger-button"
             type="button"
