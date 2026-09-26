@@ -11,6 +11,7 @@ import {
   getExpenses,
   getExpensePage,
   getProfile,
+  getYearAnalysis,
   summarizeBalancesByCurrency,
   previewExpenseImpact,
   splitCategoryLimits,
@@ -33,7 +34,7 @@ import type {
   UpdateProfileInput,
   UpdateExpenseInput,
 } from '../types';
-import { mapBudget, mapCategory, mapExpense, mapMoney } from './mappers';
+import { mapBudget, mapCategory, mapExpense, mapMoney, mapYearAnalysis } from './mappers';
 import { typeDefs } from './type-defs';
 
 export const schema = createSchema<RequestContext>({
@@ -75,6 +76,8 @@ export const schema = createSchema<RequestContext>({
         );
         return { items: page.items.map(mapExpense), nextCursor: page.nextCursor };
       },
+      yearAnalysis: async (_root, args: { year: number }, context) =>
+        mapYearAnalysis(await getYearAnalysis(context.env.DB, context.viewerId, args.year)),
       dashboard: async (_root, _args, context) => {
         const [profile, budgets, recentExpenses] = await Promise.all([
           getProfile(context.env.DB, context.viewerId),

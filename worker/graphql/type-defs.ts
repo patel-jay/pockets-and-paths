@@ -98,6 +98,57 @@ export const typeDefs = /* GraphQL */ `
     budgetCount: Int!
   }
 
+  type YearCategoryTotal {
+    name: String!
+    spent: Money!
+  }
+
+  type YearMonthAnalysis {
+    month: Int!
+    periodStart: String!
+    planned: Money!
+    monthlySpent: Money!
+    tripSpent: Money!
+    totalSpent: Money!
+    categories: [YearCategoryTotal!]!
+  }
+
+  type YearCurrencyAnalysis {
+    currency: String!
+    planned: Money!
+    monthlySpent: Money!
+    tripSpent: Money!
+    totalSpent: Money!
+    remaining: Money!
+    overspent: Money!
+    months: [YearMonthAnalysis!]!
+    categories: [YearCategoryTotal!]!
+  }
+
+  type YearTripAnalysis {
+    id: ID!
+    name: String!
+    currency: String!
+    startDate: String!
+    endDate: String
+    status: BudgetStatus!
+    planned: Money!
+    spent: Money!
+    remaining: Money!
+    overspent: Money!
+    isOverBudget: Boolean!
+    cashFlowInYear: Money!
+  }
+
+  type YearAnalysis {
+    year: Int!
+    isCurrentYear: Boolean!
+    monthsIncluded: Int!
+    availableYears: [Int!]!
+    currencies: [YearCurrencyAnalysis!]!
+    trips: [YearTripAnalysis!]!
+  }
+
   input CreateBudgetInput {
     name: String!
     type: BudgetType!
@@ -189,6 +240,7 @@ export const typeDefs = /* GraphQL */ `
     budget(id: ID!, periodStart: String): Budget
     expenses(budgetId: ID, limit: Int = 100): [Expense!]!
     expensePage(filter: ExpenseFilterInput, first: Int = 25, after: String): ExpensePage!
+    yearAnalysis(year: Int!): YearAnalysis!
   }
 
   type Mutation {

@@ -162,3 +162,53 @@ export interface CurrencyBalance {
   overspentMinor: number;
   budgetCount: number;
 }
+
+export interface YearCategoryTotal {
+  name: string;
+  spentMinor: number;
+}
+
+export interface YearMonthAnalysis {
+  month: number;
+  periodStart: string;
+  plannedMinor: number;
+  monthlySpentMinor: number;
+  tripSpentMinor: number;
+  totalSpentMinor: number;
+  categories: YearCategoryTotal[];
+}
+
+export interface YearCurrencyAnalysis {
+  currency: string;
+  plannedMinor: number;
+  monthlySpentMinor: number;
+  tripSpentMinor: number;
+  totalSpentMinor: number;
+  remainingMinor: number;
+  overspentMinor: number;
+  months: YearMonthAnalysis[];
+  categories: YearCategoryTotal[];
+}
+
+export interface YearTripAnalysis {
+  id: string;
+  name: string;
+  currency: string;
+  startDate: string;
+  endDate: string | null;
+  status: BudgetStatus;
+  plannedMinor: number;
+  spentMinor: number;
+  remainingMinor: number;
+  overspentMinor: number;
+  cashFlowInYearMinor: number;
+}
+
+export interface YearAnalysis {
+  year: number;
+  isCurrentYear: boolean;
+  monthsIncluded: number;
+  availableYears: number[];
+  currencies: YearCurrencyAnalysis[];
+  trips: YearTripAnalysis[];
+}

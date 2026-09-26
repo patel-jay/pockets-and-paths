@@ -20,7 +20,10 @@ Personal passwords are salted and hashed with PBKDF2-HMAC-SHA-256, then protecte
 - A category belongs to exactly one budget and may carry an allocation limit.
 - An expense belongs to exactly one budget and one of that budget’s categories.
 - A monthly expense date selects its budget period. Editing the date can move the expense to a
-  different month without changing either month’s other entries.
+  different month without changing either month’s other entries. Monthly period snapshots are
+  materialized through the calendar year so zero-spend months keep their planned values.
+- A temporary-budget expense may be dated before or after the trip itself, allowing advance
+  bookings and later settlements to remain part of the complete trip ledger.
 - An expense stores integer minor units in its parent budget’s currency.
 
 ## Important boundaries
@@ -50,8 +53,15 @@ Migration `0002` adds the nullable category-limit representation alongside the o
 Migration `0003` enforces the one-currency-per-budget invariant for new and updated expenses. Earlier conversion columns remain only as additive-schema compatibility fields; current writes mirror the budget amount with a neutral rate, while GraphQL exposes one expense amount and no rate controls.
 
 Migration `0006` adds monthly budget periods, period-specific category-limit snapshots, and expense
-period references. Periods are created only when first used. Global expense browsing uses a
-date-and-ID cursor instead of an offset, so inserting a newer row does not shift later pages.
+period references. Migration `0007` fills active monthly periods through the end of the relevant
+calendar year and snapshots their category limits. Runtime materialization repeats this safely for
+new plans and new years. Global expense browsing uses a date-and-ID cursor instead of an offset, so
+inserting a newer row does not shift later pages.
+
+Yearly analysis is assembled in `worker/data/analysis.ts`. Monthly-plan totals, trip cash flow, and
+category spending are grouped by reporting currency. The calendar view follows expense dates,
+while the trip view selects trips by start year and totals their complete ledgers. This separation
+avoids comparing a multi-year trip budget with only one year of its spending.
 
 ### Testing
 

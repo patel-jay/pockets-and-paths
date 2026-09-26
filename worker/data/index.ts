@@ -1,3 +1,4 @@
+export * from './analysis';
 export * from './budgets';
 export * from './categories';
 export * from './expense-ledger';

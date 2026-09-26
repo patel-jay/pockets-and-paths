@@ -12,6 +12,12 @@ test('opens the isolated demo and reaches the primary budgeting flow', async ({ 
   await page.getByRole('link', { name: 'Budgets', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Budgets' })).toBeVisible();
 
+  await page.getByRole('link', { name: 'Analysis', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: 'Yearly analysis' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Complete trip totals' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Budgets', exact: true }).first().click();
+
   await page.getByRole('button', { name: 'New budget' }).click();
   const budgetDialog = page.getByRole('dialog', { name: 'Create a budget' });
   const [currencyTop, amountTop] = await Promise.all([

@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { CircleDollarSign, Home, LogOut, Plus, ReceiptText, Settings } from 'lucide-react';
+import {
+  BarChart3,
+  CircleDollarSign,
+  Home,
+  LogOut,
+  Plus,
+  ReceiptText,
+  Settings,
+} from 'lucide-react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { useDashboard } from '../lib/queries';
 import type { AppOutletContext } from '../lib/app-actions';
@@ -12,6 +20,7 @@ const navItems = [
   { to: '/', label: 'Overview', icon: Home, end: true },
   { to: '/budgets', label: 'Budgets', icon: CircleDollarSign },
   { to: '/expenses', label: 'Expenses', icon: ReceiptText },
+  { to: '/analysis', label: 'Analysis', icon: BarChart3 },
 ];
 
 function initials(name?: string) {
@@ -125,6 +134,13 @@ export function AppShell() {
         >
           <ReceiptText size={20} />
           Expenses
+        </NavLink>
+        <NavLink
+          to="/analysis"
+          className={({ isActive }) => (isActive ? 'mobile-nav__active' : '')}
+        >
+          <BarChart3 size={20} />
+          Analysis
         </NavLink>
         <NavLink
           to="/settings"

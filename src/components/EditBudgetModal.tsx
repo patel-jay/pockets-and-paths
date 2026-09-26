@@ -48,6 +48,7 @@ export function EditBudgetModal({ budget, open, onClose }: Props) {
         queryClient.invalidateQueries({ queryKey: queryKeys.budgets }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
         queryClient.invalidateQueries({ queryKey: queryKeys.expenses }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.yearAnalyses }),
       ]);
       onClose();
       if (action === 'archive') navigate('/budgets');

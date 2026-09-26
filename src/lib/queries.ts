@@ -8,6 +8,7 @@ import {
   expensePageQuery,
   graphqlRequest,
   profileQuery,
+  yearAnalysisQuery,
 } from './graphql';
 import type { ExpenseFilters } from '../types/inputs';
 
@@ -18,6 +19,8 @@ export const queryKeys = {
     periodStart ? (['budget', id, periodStart] as const) : (['budget', id] as const),
   expenses: ['expenses'] as const,
   profile: ['profile'] as const,
+  yearAnalyses: ['year-analysis'] as const,
+  yearAnalysis: (year: number) => ['year-analysis', year] as const,
 };
 
 export function useDashboard() {
@@ -74,5 +77,12 @@ export function useProfile() {
   return useQuery({
     queryKey: queryKeys.profile,
     queryFn: () => graphqlRequest(profileQuery),
+  });
+}
+
+export function useYearAnalysis(year: number) {
+  return useQuery({
+    queryKey: queryKeys.yearAnalysis(year),
+    queryFn: () => graphqlRequest(yearAnalysisQuery, { year }),
   });
 }

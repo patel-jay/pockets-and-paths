@@ -108,7 +108,7 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId, expense }: P
       open={open}
       onClose={onClose}
       title={expense ? 'Edit expense' : 'Add an expense'}
-      description="The expense date decides which monthly period receives the spending."
+      description="The expense date decides which monthly period and yearly cash-flow report receives the spending."
     >
       {budgetsQuery.isLoading && <LoadingState label="Loading budgets…" />}
       {budgetsQuery.isError && (
@@ -201,6 +201,9 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId, expense }: P
                 }).format(new Date(`${expenseDate.slice(0, 7)}-01T00:00:00Z`))}
                 .
               </small>
+            )}
+            {selectedBudget?.type === 'TEMPORARY' && (
+              <small>Use the actual payment date for advance bookings and later settlements.</small>
             )}
           </label>
           <label className="form-field">

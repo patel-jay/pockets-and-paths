@@ -5,6 +5,7 @@ import type {
   ExpenseImpact,
   ExpensePage,
   Profile,
+  YearAnalysis,
 } from '../../types/app';
 import type {
   AddExpenseInput,
@@ -129,6 +130,93 @@ export const profileQuery = defineOperation<{ profile: Profile }>(/* GraphQL */ 
     }
   }
 `);
+
+export const yearAnalysisQuery = defineOperation<{ yearAnalysis: YearAnalysis }, { year: number }>(
+  /* GraphQL */ `
+    ${moneyFragment}
+    query YearAnalysis($year: Int!) {
+      yearAnalysis(year: $year) {
+        year
+        isCurrentYear
+        monthsIncluded
+        availableYears
+        currencies {
+          currency
+          planned {
+            ...MoneyFields
+          }
+          monthlySpent {
+            ...MoneyFields
+          }
+          tripSpent {
+            ...MoneyFields
+          }
+          totalSpent {
+            ...MoneyFields
+          }
+          remaining {
+            ...MoneyFields
+          }
+          overspent {
+            ...MoneyFields
+          }
+          categories {
+            name
+            spent {
+              ...MoneyFields
+            }
+          }
+          months {
+            month
+            periodStart
+            planned {
+              ...MoneyFields
+            }
+            monthlySpent {
+              ...MoneyFields
+            }
+            tripSpent {
+              ...MoneyFields
+            }
+            totalSpent {
+              ...MoneyFields
+            }
+            categories {
+              name
+              spent {
+                ...MoneyFields
+              }
+            }
+          }
+        }
+        trips {
+          id
+          name
+          currency
+          startDate
+          endDate
+          status
+          planned {
+            ...MoneyFields
+          }
+          spent {
+            ...MoneyFields
+          }
+          remaining {
+            ...MoneyFields
+          }
+          overspent {
+            ...MoneyFields
+          }
+          isOverBudget
+          cashFlowInYear {
+            ...MoneyFields
+          }
+        }
+      }
+    }
+  `,
+);
 
 export const createBudgetMutation = defineOperation<
   { createBudget: Pick<Budget, 'id'> },

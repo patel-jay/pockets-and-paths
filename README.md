@@ -27,6 +27,8 @@ Pockets & Paths lets one person run a recurring monthly plan alongside any numbe
 - Optional category limits show spent, remaining, and overspent percentages without forcing every category into an allocation.
 - Expenses are never blocked by an exhausted plan; the app warns first, then records reality and shows the true overspend.
 - The dashboard groups remaining and overspent balances by currency instead of presenting a misleading converted total.
+- Yearly analysis compares monthly plans with actual spending, supports month-by-month drill-down,
+  and reports complete trip totals separately from calendar-year cash flow.
 - Responsive SPA navigation and an installable PWA shell work across phones and larger screens.
 - A dummy login opens an isolated, cookie-backed demo profile for each browser, with logout and reset controls.
 - Invite-only personal accounts keep durable data available across devices without opening public registration.
@@ -83,7 +85,12 @@ The unit suite covers currency support, parsing, spending positions, grouped cur
 
 ## Data and currency model
 
-Money is stored as integer minor units, never as floating-point values. A budget selects its currency when it is created; expenses do not accept a separate currency or exchange rate. The profile’s default currency only preselects new budget forms. On the dashboard, balances are summed only when their currency matches and are displayed as separate groups.
+Money is stored as integer minor units, never as floating-point values. A budget selects its currency when it is created; expenses do not accept a separate currency or exchange rate. The profile’s default currency only preselects new budget forms. On the dashboard and in yearly analysis, balances are summed only when their currency matches and are displayed as separate groups.
+
+Monthly plan snapshots are created through the end of the relevant calendar year, so a month with
+no expenses still retains its planned amount and category limits. Yearly cash flow follows expense
+dates. Trip performance instead uses the whole trip ledger, which means an advance booking can
+appear in an earlier cash-flow year while still contributing to the trip’s complete total.
 
 Overall-budget progress can exceed 100%; remaining and overspent amounts are separate, non-negative values. A category with no limit reports spending without inventing a percentage or overspending state.
 

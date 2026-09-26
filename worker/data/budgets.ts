@@ -6,7 +6,7 @@ import {
 } from '../../shared/category-presets';
 import type { BudgetRow, BudgetStatus, CreateBudgetInput, UpdateBudgetInput } from '../types';
 import { requireCurrency, requireIsoDate, requirePositiveMinor, requireText } from './validation';
-import { monthStart } from './periods';
+import { ensureBudgetPeriods, ensureViewerYearPeriods, monthStart } from './periods';
 
 export function requireActiveBudget(budget: BudgetRow): void {
   if (budget.status === 'ARCHIVED') {
@@ -20,6 +20,7 @@ export async function getBudgets(
   status: BudgetStatus = 'ACTIVE',
   periodStart = monthStart(),
 ): Promise<BudgetRow[]> {
+  await ensureViewerYearPeriods(db, viewerId);
   const { results } = await db
     .prepare(
       `SELECT b.*, p.id AS period_id, p.period_start,
@@ -136,6 +137,18 @@ export async function createBudget(
         );
     }),
   );
+
+  if (input.type === 'MONTHLY') {
+    const startYear = Number(startDate.slice(0, 4));
+    const currentYear = new Date().getUTCFullYear();
+    const throughYear = Math.max(startYear, currentYear);
+    const createdBudget = await db
+      .prepare('SELECT * FROM budgets WHERE id = ? AND viewer_id = ?')
+      .bind(id, viewerId)
+      .first<BudgetRow>();
+    if (!createdBudget) throw new Error('Created budget could not be loaded.');
+    await ensureBudgetPeriods(db, viewerId, createdBudget, startDate, `${throughYear}-12-01`);
+  }
 
   const budget = await getBudget(db, viewerId, id);
   if (!budget) throw new Error('Created budget could not be loaded.');

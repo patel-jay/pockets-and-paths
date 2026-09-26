@@ -22,6 +22,9 @@ const ExpensesPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('./routes/Settings').then((module) => ({ default: module.SettingsPage })),
 );
+const AnalysisPage = lazy(() =>
+  import('./routes/Analysis').then((module) => ({ default: module.AnalysisPage })),
+);
 
 function deferred(element: ReactNode) {
   return <Suspense fallback={<LoadingState />}>{element}</Suspense>;
@@ -37,6 +40,7 @@ const router = createBrowserRouter([
       { path: 'budgets', element: deferred(<BudgetsPage />) },
       { path: 'budgets/:budgetId', element: deferred(<BudgetDetailPage />) },
       { path: 'expenses', element: deferred(<ExpensesPage />) },
+      { path: 'analysis', element: deferred(<AnalysisPage />) },
       { path: 'settings', element: deferred(<SettingsPage />) },
       { path: '*', element: <NotFoundPage /> },
     ],

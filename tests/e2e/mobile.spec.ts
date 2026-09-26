@@ -10,7 +10,7 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
 
   const mobileNav = page.getByRole('navigation', { name: 'Mobile navigation' });
   await expect(mobileNav).toBeVisible();
-  for (const label of ['Home', 'Budgets', 'Expenses', 'Settings']) {
+  for (const label of ['Home', 'Budgets', 'Expenses', 'Analysis', 'Settings']) {
     const box = await mobileNav.getByRole('link', { name: label, exact: true }).boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -78,6 +78,14 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
 
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await mobileNav.getByRole('link', { name: 'Analysis', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Yearly analysis' })).toBeVisible();
+  const analysisFit = await page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(analysisFit.scrollWidth).toBeLessThanOrEqual(analysisFit.innerWidth);
+
   await mobileNav.getByRole('link', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);

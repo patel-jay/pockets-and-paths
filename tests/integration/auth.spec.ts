@@ -119,10 +119,19 @@ test('registers an invite-only personal account and restores it in a new session
 
     const exported = await secondDevice.get('/api/export?format=json');
     expect(exported.ok()).toBe(true);
-    await expect(exported.json()).resolves.toMatchObject({
+    const exportedData = (await exported.json()) as {
+      formatVersion: number;
+      budgets: { name: string }[];
+      budgetPeriods: { period_start: string; amount_minor: number }[];
+    };
+    expect(exportedData).toMatchObject({
       formatVersion: 1,
       budgets: [expect.objectContaining({ name: 'Private monthly plan' })],
-      budgetPeriods: [],
+    });
+    expect(exportedData.budgetPeriods).toHaveLength(12);
+    expect(exportedData.budgetPeriods[0]).toMatchObject({
+      period_start: '2031-01-01',
+      amount_minor: 100000,
     });
 
     const nextPassword = 'an updated integration passphrase';

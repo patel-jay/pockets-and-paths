@@ -759,3 +759,213 @@ test('moves edited expenses between monthly periods and pages the ledger', async
     await api.dispose();
   }
 });
+
+test('builds yearly monthly and trip analysis without losing advance bookings', async ({
+  playwright,
+}) => {
+  const api = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:4173' });
+
+  try {
+    await login(api);
+    await reset(api);
+
+    const createBudget = async (
+      name: string,
+      type: 'MONTHLY' | 'TEMPORARY',
+      amountMinor: string,
+      startDate: string,
+      endDate: string | null,
+    ) => {
+      const result = await graphql<{
+        createBudget: { id: string; categories: { id: string }[] };
+      }>(
+        api,
+        `
+          mutation CreateAnalysisBudget($input: CreateBudgetInput!) {
+            createBudget(input: $input) {
+              id
+              categories {
+                id
+              }
+            }
+          }
+        `,
+        {
+          input: { name, type, currency: 'SGD', amountMinor, startDate, endDate },
+        },
+      );
+      expect(result.errors).toBeUndefined();
+      return result.data!.createBudget;
+    };
+
+    const addExpense = async (
+      budgetId: string,
+      categoryId: string,
+      title: string,
+      amountMinor: string,
+      expenseDate: string,
+    ) => {
+      const result = await graphql<{ addExpense: { id: string } }>(
+        api,
+        `
+          mutation AddAnalysisExpense($input: AddExpenseInput!) {
+            addExpense(input: $input) {
+              id
+            }
+          }
+        `,
+        {
+          input: { budgetId, categoryId, title, amountMinor, expenseDate, notes: null },
+        },
+      );
+      expect(result.errors).toBeUndefined();
+    };
+
+    const monthly = await createBudget(
+      `Analysis monthly ${crypto.randomUUID()}`,
+      'MONTHLY',
+      '100000',
+      '2030-01-01',
+      null,
+    );
+    const trip = await createBudget(
+      `Analysis trip ${crypto.randomUUID()}`,
+      'TEMPORARY',
+      '50000',
+      '2030-03-10',
+      '2030-03-20',
+    );
+
+    await addExpense(
+      monthly.id,
+      monthly.categories[0].id,
+      'January groceries',
+      '1000',
+      '2030-01-08',
+    );
+    await addExpense(trip.id, trip.categories[0].id, 'Advance flight', '3000', '2029-12-12');
+    await addExpense(trip.id, trip.categories[0].id, 'Hotel', '4000', '2030-03-12');
+
+    const report = await graphql<{
+      yearAnalysis: {
+        availableYears: number[];
+        currencies: {
+          currency: string;
+          planned: { minor: string };
+          monthlySpent: { minor: string };
+          tripSpent: { minor: string };
+          totalSpent: { minor: string };
+          months: {
+            month: number;
+            planned: { minor: string };
+            monthlySpent: { minor: string };
+            tripSpent: { minor: string };
+          }[];
+        }[];
+        trips: {
+          id: string;
+          spent: { minor: string };
+          cashFlowInYear: { minor: string };
+        }[];
+      };
+    }>(
+      api,
+      `
+        query IntegrationYearAnalysis($year: Int!) {
+          yearAnalysis(year: $year) {
+            availableYears
+            currencies {
+              currency
+              planned {
+                minor
+              }
+              monthlySpent {
+                minor
+              }
+              tripSpent {
+                minor
+              }
+              totalSpent {
+                minor
+              }
+              months {
+                month
+                planned {
+                  minor
+                }
+                monthlySpent {
+                  minor
+                }
+                tripSpent {
+                  minor
+                }
+              }
+            }
+            trips {
+              id
+              spent {
+                minor
+              }
+              cashFlowInYear {
+                minor
+              }
+            }
+          }
+        }
+      `,
+      { year: 2030 },
+    );
+
+    expect(report.errors).toBeUndefined();
+    expect(report.data?.yearAnalysis.availableYears).toEqual(expect.arrayContaining([2029, 2030]));
+    const sgd = report.data!.yearAnalysis.currencies.find((item) => item.currency === 'SGD')!;
+    expect(sgd.planned.minor).toBe('1200000');
+    expect(sgd.monthlySpent.minor).toBe('1000');
+    expect(sgd.tripSpent.minor).toBe('4000');
+    expect(sgd.totalSpent.minor).toBe('5000');
+    expect(sgd.months).toHaveLength(12);
+    expect(sgd.months[1]).toMatchObject({
+      month: 2,
+      planned: { minor: '100000' },
+      monthlySpent: { minor: '0' },
+      tripSpent: { minor: '0' },
+    });
+    expect(report.data?.yearAnalysis.trips).toContainEqual({
+      id: trip.id,
+      spent: { minor: '7000' },
+      cashFlowInYear: { minor: '4000' },
+    });
+
+    const bookingYear = await graphql<{
+      yearAnalysis: {
+        currencies: { currency: string; tripSpent: { minor: string } }[];
+        trips: { id: string }[];
+      };
+    }>(
+      api,
+      `
+        query BookingYearAnalysis($year: Int!) {
+          yearAnalysis(year: $year) {
+            currencies {
+              currency
+              tripSpent {
+                minor
+              }
+            }
+            trips {
+              id
+            }
+          }
+        }
+      `,
+      { year: 2029 },
+    );
+    const bookingCurrency = bookingYear.data!.yearAnalysis.currencies.find(
+      (item) => item.currency === 'SGD',
+    );
+    expect(bookingCurrency?.tripSpent.minor).toBe('3000');
+    expect(bookingYear.data?.yearAnalysis.trips.some((item) => item.id === trip.id)).toBe(false);
+  } finally {
+    await api.dispose();
+  }
+});

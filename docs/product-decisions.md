@@ -4,9 +4,18 @@
 
 A trip does not pause rent, groceries, or subscriptions. The model therefore lets monthly and temporary budgets run concurrently. The dashboard shows what remains by currency, while every expense still belongs to one clear plan.
 
-Monthly budgets recur by calendar month. The expense date chooses the month, and the first expense
-in a month snapshots that period’s overall amount and category limits. Later template changes can
-shape the current and future periods without rewriting historical months.
+Monthly budgets recur by calendar month. Their overall amount and category limits are snapshotted
+through the end of the relevant calendar year, including months with no spending. The expense date
+chooses the month, and later template changes can shape current and future snapshots without
+rewriting historical months.
+
+## Yearly cash flow and trip performance answer different questions
+
+Calendar-year analysis follows expense dates and compares recurring monthly plans with recurring
+spending. Trip spending appears alongside it as cash flow, but not as part of the monthly-plan
+budget comparison. A separate trip view selects trips by their start year and compares each full
+trip budget with every linked expense. This lets an advance booking affect the year it was paid and
+the complete trip total without counting it twice or hiding the timing difference.
 
 ## One currency belongs to a budget
 

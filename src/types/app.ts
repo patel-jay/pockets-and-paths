@@ -96,3 +96,54 @@ export type ExpenseImpact = {
   categoryOverspent: Money | null;
   categoryWillOverspend: boolean;
 };
+
+export type YearCategoryTotal = {
+  name: string;
+  spent: Money;
+};
+
+export type YearMonthAnalysis = {
+  month: number;
+  periodStart: string;
+  planned: Money;
+  monthlySpent: Money;
+  tripSpent: Money;
+  totalSpent: Money;
+  categories: YearCategoryTotal[];
+};
+
+export type YearCurrencyAnalysis = {
+  currency: string;
+  planned: Money;
+  monthlySpent: Money;
+  tripSpent: Money;
+  totalSpent: Money;
+  remaining: Money;
+  overspent: Money;
+  months: YearMonthAnalysis[];
+  categories: YearCategoryTotal[];
+};
+
+export type YearTripAnalysis = {
+  id: string;
+  name: string;
+  currency: string;
+  startDate: string;
+  endDate: string | null;
+  status: 'ACTIVE' | 'ARCHIVED';
+  planned: Money;
+  spent: Money;
+  remaining: Money;
+  overspent: Money;
+  isOverBudget: boolean;
+  cashFlowInYear: Money;
+};
+
+export type YearAnalysis = {
+  year: number;
+  isCurrentYear: boolean;
+  monthsIncluded: number;
+  availableYears: number[];
+  currencies: YearCurrencyAnalysis[];
+  trips: YearTripAnalysis[];
+};
