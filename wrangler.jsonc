@@ -3,6 +3,10 @@
   "name": "pockets-and-paths",
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-20",
+  "vars": {
+    "DEMO_ENABLED": "true",
+    "REGISTRATION_ENABLED": "true",
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -17,5 +21,37 @@
   },
   "observability": {
     "enabled": true,
+  },
+  "env": {
+    "demo": {
+      "name": "pockets-and-paths-demo",
+      "vars": {
+        "DEMO_ENABLED": "true",
+        "REGISTRATION_ENABLED": "false",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "pockets-and-paths-demo",
+          "database_id": "00000000-0000-4000-8000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+    },
+    "private": {
+      "name": "pockets-and-paths-private",
+      "vars": {
+        "DEMO_ENABLED": "false",
+        "REGISTRATION_ENABLED": "false",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "pockets-and-paths-private",
+          "database_id": "00000000-0000-4000-8000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+    },
   },
 }

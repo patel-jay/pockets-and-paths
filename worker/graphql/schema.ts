@@ -4,10 +4,12 @@ import {
   createBudget,
   createCategory,
   createExpense,
+  deleteExpense,
   getBudget,
   getBudgets,
   getCategories,
   getExpenses,
+  getExpensePage,
   getProfile,
   summarizeBalancesByCurrency,
   previewExpenseImpact,
@@ -16,17 +18,20 @@ import {
   updateCategory,
   updateBudget,
   updateProfile,
+  updateExpense,
 } from '../data';
 import type {
   AddExpenseInput,
   CreateBudgetInput,
   CreateCategoryInput,
   ExpenseImpactInput,
+  ExpenseFilterInput,
   RequestContext,
   BudgetStatus,
   UpdateCategoryInput,
   UpdateBudgetInput,
   UpdateProfileInput,
+  UpdateExpenseInput,
 } from '../types';
 import { mapBudget, mapCategory, mapExpense, mapMoney } from './mappers';
 import { typeDefs } from './type-defs';
@@ -48,13 +53,27 @@ export const schema = createSchema<RequestContext>({
         const budgets = await getBudgets(context.env.DB, context.viewerId, args.status ?? 'ACTIVE');
         return budgets.map((budget) => mapBudget(budget));
       },
-      budget: async (_root, args: { id: string }, context) => {
-        const budget = await getBudget(context.env.DB, context.viewerId, args.id);
+      budget: async (_root, args: { id: string; periodStart?: string }, context) => {
+        const budget = await getBudget(context.env.DB, context.viewerId, args.id, args.periodStart);
         return budget ? mapBudget(budget) : null;
       },
       expenses: async (_root, args: { budgetId?: string; limit?: number }, context) => {
         const expenses = await getExpenses(context.env.DB, context.viewerId, args);
         return expenses.map(mapExpense);
+      },
+      expensePage: async (
+        _root,
+        args: { filter?: ExpenseFilterInput; first?: number; after?: string },
+        context,
+      ) => {
+        const page = await getExpensePage(
+          context.env.DB,
+          context.viewerId,
+          args.filter,
+          args.first,
+          args.after,
+        );
+        return { items: page.items.map(mapExpense), nextCursor: page.nextCursor };
       },
       dashboard: async (_root, _args, context) => {
         const [profile, budgets, recentExpenses] = await Promise.all([
@@ -94,14 +113,32 @@ export const schema = createSchema<RequestContext>({
       },
     },
     Budget: {
-      categories: async (budget: { id: string; currency: string }, _args, context) => {
-        const categories = await getCategories(context.env.DB, context.viewerId, budget.id);
+      categories: async (
+        budget: {
+          id: string;
+          currency: string;
+          _periodId: string | null;
+          _periodScoped: boolean;
+        },
+        _args,
+        context,
+      ) => {
+        const categories = await getCategories(context.env.DB, context.viewerId, budget.id, {
+          periodId: budget._periodId,
+          periodScoped: budget._periodScoped,
+        });
         return categories.map((category) => mapCategory(category, budget.currency));
       },
-      expenses: async (budget: { id: string }, args: { limit?: number }, context) => {
+      expenses: async (
+        budget: { id: string; _periodId: string | null; _periodScoped: boolean },
+        args: { limit?: number },
+        context,
+      ) => {
         const expenses = await getExpenses(context.env.DB, context.viewerId, {
           budgetId: budget.id,
           limit: args.limit,
+          periodId: budget._periodId,
+          periodScoped: budget._periodScoped,
         });
         return expenses.map(mapExpense);
       },
@@ -131,6 +168,10 @@ export const schema = createSchema<RequestContext>({
         mapBudget(await splitCategoryLimits(context.env.DB, context.viewerId, args.budgetId)),
       addExpense: async (_root, args: { input: AddExpenseInput }, context) =>
         mapExpense(await createExpense(context.env.DB, context.viewerId, args.input)),
+      updateExpense: async (_root, args: { input: UpdateExpenseInput }, context) =>
+        mapExpense(await updateExpense(context.env.DB, context.viewerId, args.input)),
+      deleteExpense: async (_root, args: { id: string }, context) =>
+        deleteExpense(context.env.DB, context.viewerId, args.id),
       previewExpense: async (_root, args: { input: ExpenseImpactInput }, context) => {
         const impact = await previewExpenseImpact(context.env.DB, context.viewerId, args.input);
         return {

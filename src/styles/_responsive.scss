@@ -61,6 +61,10 @@
   .new-budget-card {
     min-height: 170px;
   }
+
+  .ledger-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -156,6 +160,15 @@
 
   .expense-row {
     padding-inline: 18px;
+  }
+
+  .expense-row__actions {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+  }
+
+  .ledger-filters {
+    grid-template-columns: 1fr;
   }
 
   .mobile-nav {

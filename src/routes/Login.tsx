@@ -23,6 +23,13 @@ export function LoginPage() {
   const [turnstileGeneration, setTurnstileGeneration] = useState(0);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const activeEntryMode = config
+    ? !config.demoEnabled
+      ? 'account'
+      : !config.personalAccountsEnabled
+        ? 'demo'
+        : entryMode
+    : entryMode;
 
   useEffect(() => {
     let active = true;
@@ -130,7 +137,9 @@ export function LoginPage() {
           </span>
           <span>
             <ShieldCheck size={18} />
-            An isolated demo for this browser
+            {config?.demoEnabled === false
+              ? 'Private account access'
+              : 'An isolated demo for this browser'}
           </span>
         </div>
       </section>
@@ -138,34 +147,38 @@ export function LoginPage() {
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-card">
           <span className="login-card__icon" aria-hidden="true">
-            {accountView === 'register' && entryMode === 'account' ? (
+            {accountView === 'register' && activeEntryMode === 'account' ? (
               <UserRoundPlus size={23} />
             ) : (
               <LockKeyhole size={23} />
             )}
           </span>
           <div className="login-mode-switch" aria-label="Sign-in options">
-            <button
-              type="button"
-              className={entryMode === 'demo' ? 'login-mode-switch__active' : ''}
-              aria-pressed={entryMode === 'demo'}
-              onClick={() => chooseEntryMode('demo')}
-            >
-              Try the demo
-            </button>
-            <button
-              type="button"
-              className={entryMode === 'account' ? 'login-mode-switch__active' : ''}
-              aria-pressed={entryMode === 'account'}
-              onClick={() => chooseEntryMode('account')}
-            >
-              Personal account
-            </button>
+            {config?.demoEnabled !== false && (
+              <button
+                type="button"
+                className={activeEntryMode === 'demo' ? 'login-mode-switch__active' : ''}
+                aria-pressed={activeEntryMode === 'demo'}
+                onClick={() => chooseEntryMode('demo')}
+              >
+                Try the demo
+              </button>
+            )}
+            {config?.personalAccountsEnabled !== false && (
+              <button
+                type="button"
+                className={activeEntryMode === 'account' ? 'login-mode-switch__active' : ''}
+                aria-pressed={activeEntryMode === 'account'}
+                onClick={() => chooseEntryMode('account')}
+              >
+                Personal account
+              </button>
+            )}
           </div>
 
-          {entryMode === 'demo' ? (
+          {activeEntryMode === 'demo' ? (
             <form className="login-card__form" onSubmit={submitDemo}>
-              <p className="eyebrow">Portfolio preview</p>
+              <p className="eyebrow">Interactive demo</p>
               <h2 id="login-title">Sign in to the demo</h2>
               <p className="login-card__intro">
                 Use the credentials below. Your changes stay separate from other visitors.
@@ -238,16 +251,18 @@ export function LoginPage() {
                 {pending ? 'Signing in…' : 'Sign in'}
                 {!pending && <ArrowRight size={18} />}
               </button>
-              <button
-                className="login-card__link"
-                type="button"
-                onClick={() => {
-                  setAccountView('register');
-                  setError('');
-                }}
-              >
-                Create an invite-only account
-              </button>
+              {config?.registrationEnabled && (
+                <button
+                  className="login-card__link"
+                  type="button"
+                  onClick={() => {
+                    setAccountView('register');
+                    setError('');
+                  }}
+                >
+                  Create an invite-only account
+                </button>
+              )}
             </form>
           ) : (
             <form

@@ -18,7 +18,11 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:migrate:local": "wrangler d1 migrations apply pockets-and-paths --local"
+    "db:migrate:local": "wrangler d1 migrations apply pockets-and-paths --local",
+    "db:migrate:demo": "wrangler d1 migrations apply pockets-and-paths-demo --remote --env demo",
+    "db:migrate:private": "wrangler d1 migrations apply pockets-and-paths-private --remote --env private",
+    "deploy:demo": "npm run build && wrangler deploy --env demo",
+    "deploy:private": "npm run build && wrangler deploy --env private"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

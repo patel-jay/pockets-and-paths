@@ -1,6 +1,7 @@
 import type { BudgetRow, CategoryRow, CreateCategoryInput, UpdateCategoryInput } from '../types';
 import { DomainError } from '../errors';
 import { getBudget, requireActiveBudget } from './budgets';
+import { monthStart } from './periods';
 import {
   optionalPositiveMinor,
   requireCategoryIcon,
@@ -12,17 +13,30 @@ export async function getCategories(
   db: D1Database,
   viewerId: string,
   budgetId: string,
+  options: { periodId?: string | null; periodScoped?: boolean } = {},
 ): Promise<CategoryRow[]> {
+  const periodScoped = options.periodScoped ? 1 : 0;
+  const periodId = options.periodId ?? null;
   const { results } = await db
     .prepare(
-      `SELECT c.*, COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor
+      `SELECT c.id, c.budget_id, c.viewer_id, c.name, c.limit_minor,
+              CASE
+                WHEN ? = 1 AND ? IS NOT NULL THEN cpl.limit_minor
+                ELSE c.limit_minor_optional
+              END AS limit_minor_optional,
+              c.color, c.icon_key, c.created_at,
+              COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor
        FROM categories c
-       LEFT JOIN expenses e ON e.category_id = c.id AND e.viewer_id = c.viewer_id
+       LEFT JOIN category_period_limits cpl
+         ON cpl.category_id = c.id AND cpl.period_id = ?
+       LEFT JOIN expenses e
+         ON e.category_id = c.id AND e.viewer_id = c.viewer_id
+        AND (? = 0 OR e.period_id = ?)
        WHERE c.viewer_id = ? AND c.budget_id = ?
        GROUP BY c.id
        ORDER BY c.created_at ASC`,
     )
-    .bind(viewerId, budgetId)
+    .bind(periodScoped, periodId, periodId, periodScoped, periodId, viewerId, budgetId)
     .all<CategoryRow>();
 
   return results;
@@ -51,6 +65,17 @@ export async function createCategory(
     )
     .bind(id, input.budgetId, viewerId, name, limitMinor ?? 0, limitMinor, color, icon, now)
     .run();
+
+  if (budget.type === 'MONTHLY') {
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO category_period_limits (period_id, category_id, limit_minor)
+         SELECT p.id, ?, ? FROM budget_periods p
+         WHERE p.budget_id = ? AND p.viewer_id = ? AND p.period_start >= ?`,
+      )
+      .bind(id, limitMinor, input.budgetId, viewerId, monthStart())
+      .run();
+  }
 
   const category = await db
     .prepare('SELECT *, 0 AS spent_minor FROM categories WHERE id = ? AND viewer_id = ?')
@@ -86,6 +111,19 @@ export async function updateCategory(
     .bind(limitMinor ?? 0, limitMinor, color, icon, input.categoryId, viewerId)
     .run();
   if (result.meta.changes !== 1) throw new DomainError('Category was not found.', 'NOT_FOUND');
+
+  if (budget.type === 'MONTHLY') {
+    await db
+      .prepare(
+        `UPDATE category_period_limits SET limit_minor = ?
+         WHERE category_id = ? AND period_id IN (
+           SELECT id FROM budget_periods
+           WHERE budget_id = ? AND viewer_id = ? AND period_start >= ?
+         )`,
+      )
+      .bind(limitMinor, input.categoryId, budget.id, viewerId, monthStart())
+      .run();
+  }
 
   const category = await db
     .prepare(
@@ -128,6 +166,22 @@ export async function splitCategoryLimits(
         .bind(limit, limit, category.id, viewerId);
     }),
   );
+
+  if (budget.type === 'MONTHLY') {
+    await db.batch(
+      categories.map((category, index) => {
+        const limit = baseLimit + (index === 0 ? remainder : 0);
+        return db
+          .prepare(
+            `INSERT INTO category_period_limits (period_id, category_id, limit_minor)
+             SELECT p.id, ?, ? FROM budget_periods p
+             WHERE p.budget_id = ? AND p.viewer_id = ? AND p.period_start >= ?
+             ON CONFLICT (period_id, category_id) DO UPDATE SET limit_minor = excluded.limit_minor`,
+          )
+          .bind(category.id, limit, budget.id, viewerId, monthStart());
+      }),
+    );
+  }
 
   const updated = await getBudget(db, viewerId, budgetId);
   if (!updated) throw new Error('Updated budget could not be loaded.');

@@ -7,6 +7,8 @@ export interface Env {
   REGISTRATION_INVITE_CODE?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
+  DEMO_ENABLED?: string;
+  REGISTRATION_ENABLED?: string;
 }
 
 export interface RequestContext {
@@ -53,12 +55,26 @@ export interface ExpenseImpactInput {
   budgetId: string;
   categoryId: string;
   amountMinor: string;
+  expenseDate: string;
+  excludeExpenseId?: string | null;
 }
 
 export interface AddExpenseInput extends ExpenseImpactInput {
   title: string;
   expenseDate: string;
   notes?: string | null;
+}
+
+export interface UpdateExpenseInput extends AddExpenseInput {
+  expenseId: string;
+}
+
+export interface ExpenseFilterInput {
+  budgetId?: string | null;
+  categoryId?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  search?: string | null;
 }
 
 export interface UpdateProfileInput {
@@ -89,6 +105,9 @@ export interface BudgetRow {
   created_at: string;
   spent_minor?: number;
   allocated_minor?: number;
+  period_id?: string | null;
+  period_start?: string | null;
+  period_amount_minor?: number | null;
 }
 
 export interface CategoryRow {
@@ -101,6 +120,7 @@ export interface CategoryRow {
   color: string;
   icon_key: CategoryIconKey;
   created_at: string;
+  period_id: string | null;
   spent_minor?: number;
 }
 
@@ -119,9 +139,11 @@ export interface ExpenseRow {
   created_at: string;
   budget_name?: string;
   budget_currency?: string;
+  budget_status?: BudgetStatus;
   category_name?: string;
   category_color?: string;
   category_icon?: CategoryIconKey;
+  period_start?: string | null;
 }
 
 export interface ExpenseImpact {

@@ -1,12 +1,21 @@
-import type { Budget, DashboardData, Expense, ExpenseImpact, Profile } from '../../types/app';
+import type {
+  Budget,
+  DashboardData,
+  Expense,
+  ExpenseImpact,
+  ExpensePage,
+  Profile,
+} from '../../types/app';
 import type {
   AddExpenseInput,
   CreateBudgetInput,
   CreateCategoryInput,
   ExpenseImpactInput,
+  ExpenseFilters,
   UpdateCategoryInput,
   UpdateBudgetInput,
   UpdateProfileInput,
+  UpdateExpenseInput,
 } from '../../types/inputs';
 import { defineOperation } from './client';
 import { budgetFragment, categoryFragment, expenseFragment, moneyFragment } from './fragments';
@@ -66,22 +75,23 @@ export const archivedBudgetsQuery = defineOperation<{ archivedBudgets: Budget[] 
   }
 `);
 
-export const budgetQuery = defineOperation<{ budget: Budget | null }, { id: string }>(
-  /* GraphQL */ `
-    ${moneyFragment}
-    ${categoryFragment}
-    ${budgetFragment}
-    ${expenseFragment}
-    query Budget($id: ID!) {
-      budget(id: $id) {
-        ...BudgetFields
-        expenses(limit: 100) {
-          ...ExpenseFields
-        }
+export const budgetQuery = defineOperation<
+  { budget: Budget | null },
+  { id: string; periodStart?: string }
+>(/* GraphQL */ `
+  ${moneyFragment}
+  ${categoryFragment}
+  ${budgetFragment}
+  ${expenseFragment}
+  query Budget($id: ID!, $periodStart: String) {
+    budget(id: $id, periodStart: $periodStart) {
+      ...BudgetFields
+      expenses(limit: 100) {
+        ...ExpenseFields
       }
     }
-  `,
-);
+  }
+`);
 
 export const expensesQuery = defineOperation<{ expenses: Expense[] }>(/* GraphQL */ `
   ${moneyFragment}
@@ -89,6 +99,22 @@ export const expensesQuery = defineOperation<{ expenses: Expense[] }>(/* GraphQL
   query Expenses {
     expenses(limit: 200) {
       ...ExpenseFields
+    }
+  }
+`);
+
+export const expensePageQuery = defineOperation<
+  { expensePage: ExpensePage },
+  { filter: ExpenseFilters; first: number; after?: string }
+>(/* GraphQL */ `
+  ${moneyFragment}
+  ${expenseFragment}
+  query ExpensePage($filter: ExpenseFilterInput!, $first: Int!, $after: String) {
+    expensePage(filter: $filter, first: $first, after: $after) {
+      items {
+        ...ExpenseFields
+      }
+      nextCursor
     }
   }
 `);
@@ -160,6 +186,25 @@ export const addExpenseMutation = defineOperation<
     }
   }
 `);
+
+export const updateExpenseMutation = defineOperation<
+  { updateExpense: Pick<Expense, 'id'> },
+  { input: UpdateExpenseInput }
+>(/* GraphQL */ `
+  mutation UpdateExpense($input: UpdateExpenseInput!) {
+    updateExpense(input: $input) {
+      id
+    }
+  }
+`);
+
+export const deleteExpenseMutation = defineOperation<{ deleteExpense: boolean }, { id: string }>(
+  /* GraphQL */ `
+    mutation DeleteExpense($id: ID!) {
+      deleteExpense(id: $id)
+    }
+  `,
+);
 
 export const previewExpenseMutation = defineOperation<
   { previewExpense: ExpenseImpact },

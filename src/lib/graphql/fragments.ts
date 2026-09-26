@@ -39,6 +39,7 @@ export const budgetFragment = /* GraphQL */ `
     endDate
     status
     phase
+    periodStart
     amount {
       ...MoneyFields
     }
@@ -75,10 +76,12 @@ export const expenseFragment = /* GraphQL */ `
     notes
     budgetId
     budgetName
+    budgetStatus
     categoryId
     categoryName
     categoryColor
     categoryIcon
+    periodStart
     amount {
       ...MoneyFields
     }

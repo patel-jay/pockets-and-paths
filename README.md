@@ -22,12 +22,15 @@ Pockets & Paths lets one person run a recurring monthly plan alongside any numbe
 - Recurring monthly and fixed-date temporary budgets can be active together.
 - Budget names, totals, and dates can be edited; completed plans can be archived and restored.
 - Expenses inherit their budget’s currency, keeping entry and reporting unambiguous.
+- Expense dates place spending into the matching monthly period; entries can be edited, deleted,
+  filtered, and paged without rewriting older months.
 - Optional category limits show spent, remaining, and overspent percentages without forcing every category into an allocation.
 - Expenses are never blocked by an exhausted plan; the app warns first, then records reality and shows the true overspend.
 - The dashboard groups remaining and overspent balances by currency instead of presenting a misleading converted total.
 - Responsive SPA navigation and an installable PWA shell work across phones and larger screens.
 - A dummy login opens an isolated, cookie-backed demo profile for each browser, with logout and reset controls.
 - Invite-only personal accounts keep durable data available across devices without opening public registration.
+- CSV and JSON downloads make routine analysis and personal backups straightforward.
 
 ## Stack
 
@@ -78,10 +81,6 @@ npm run build
 
 The unit suite covers currency support, parsing, spending positions, grouped currency balances, relative seed dates, and password verification. The integration suite exercises the real Worker, GraphQL endpoint, and local D1 database—including invite-only registration, account sessions, demo isolation, ownership checks, budget editing and archiving, currency inheritance, database reads, and overspending. A browser smoke test verifies the primary demo sign-in and budgeting flow.
 
-## AI-assisted development
-
-Codex was used as an implementation partner while product scope and architectural decisions remained human-directed. Agent-generated changes were reviewed through typed boundaries, unit and integration tests, browser checks, security auditing, and production builds; key steering decisions included removing ambiguous currency conversion and preserving existing data during schema evolution.
-
 ## Data and currency model
 
 Money is stored as integer minor units, never as floating-point values. A budget selects its currency when it is created; expenses do not accept a separate currency or exchange rate. The profile’s default currency only preselects new budget forms. On the dashboard, balances are summed only when their currency matches and are displayed as separate groups.
@@ -90,19 +89,16 @@ Overall-budget progress can exceed 100%; remaining and overspent amounts are sep
 
 ## Deployment outline
 
-The repository is configured for a Cloudflare Worker with D1, but no production resources are committed or created.
+The repository includes separate Cloudflare Worker configurations for a public demo and a private
+personal deployment. Each needs its own D1 database; no production resources or secrets are
+committed. Follow the [deployment and backup guide](docs/deployment.md) to create the databases,
+apply migrations, register the owner once, close registration, and keep restorable exports.
 
-1. Create a D1 database.
-2. Replace the placeholder `database_id` in `wrangler.jsonc`.
-3. Apply the checked-in migrations to the target database.
-4. Create a production Turnstile widget for the deployed hostname.
-5. Add `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `REGISTRATION_INVITE_CODE`, and `AUTH_PEPPER` as Worker variables/secrets. Use long, unique values for the invite code and pepper; never deploy the published Turnstile test keys.
-6. Build and deploy the Worker through Cloudflare.
-
-The invite code is only needed when creating an account. After registration, use the personal email and password normally. The current MVP intentionally has no email verification or password-recovery workflow, so retain the credentials and authentication secrets safely.
+The current release intentionally has no email verification or password-recovery workflow, so
+retain the account credentials and authentication secrets safely.
 
 See [architecture](docs/architecture.md), [product decisions](docs/product-decisions.md), and [security notes](docs/security.md) for the reasoning behind the implementation. The project is available under the [MIT License](LICENSE).
 
 ## Current scope
 
-This is a focused portfolio MVP. Visitors can use the browser-isolated demo, while the owner can create an invite-only personal account protected by Turnstile and request throttling. Email verification, password recovery, multi-factor authentication, external identity, cross-currency expense conversion, collaborative budgets, bank imports, and a durable offline mutation queue are intentionally outside the current release. The PWA caches the application shell; GraphQL data remains network-first.
+This is a focused personal budgeting release. Visitors can use the browser-isolated demo, while the owner can create an invite-only personal account protected by Turnstile and request throttling. Email verification, password recovery, multi-factor authentication, external identity, cross-currency expense conversion, collaborative budgets, bank imports, and a durable offline mutation queue are intentionally outside the current release. The PWA caches the application shell; GraphQL data remains network-first.

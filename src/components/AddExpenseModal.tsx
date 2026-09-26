@@ -1,21 +1,32 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays } from 'lucide-react';
-import { addExpenseMutation, graphqlRequest, previewExpenseMutation } from '../lib/graphql';
-import { formatMoney, parseMajorToMinor, todayIso } from '../lib/money';
+import {
+  addExpenseMutation,
+  graphqlRequest,
+  previewExpenseMutation,
+  updateExpenseMutation,
+} from '../lib/graphql';
+import { formatMoney, minorToMajorInput, parseMajorToMinor, todayIso } from '../lib/money';
 import { useBudgets } from '../lib/queries';
-import type { ExpenseImpact } from '../types/app';
+import type { Expense, ExpenseImpact } from '../types/app';
 import type { AddExpenseInput, ExpenseImpactInput } from '../types/inputs';
 import { ErrorState, LoadingState } from './AsyncState';
 import { Modal } from './Modal';
 
-type Props = { open: boolean; onClose: () => void; preferredBudgetId?: string };
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  preferredBudgetId?: string;
+  expense?: Expense;
+};
 
-export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
+export function AddExpenseModal({ open, onClose, preferredBudgetId, expense }: Props) {
   const queryClient = useQueryClient();
   const budgetsQuery = useBudgets();
   const budgets = useMemo(() => budgetsQuery.data?.budgets ?? [], [budgetsQuery.data]);
-  const [budgetId, setBudgetId] = useState(preferredBudgetId ?? '');
+  const [budgetId, setBudgetId] = useState(expense?.budgetId ?? preferredBudgetId ?? '');
+  const [expenseDate, setExpenseDate] = useState(expense?.expenseDate ?? todayIso());
   const [error, setError] = useState('');
   const [warning, setWarning] = useState<{ fingerprint: string; impact: ExpenseImpact } | null>(
     null,
@@ -25,7 +36,15 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
   const selectedCurrency = selectedBudget?.currency || 'INR';
 
   const mutation = useMutation({
-    mutationFn: (input: AddExpenseInput) => graphqlRequest(addExpenseMutation, { input }),
+    mutationFn: async (input: AddExpenseInput) => {
+      if (expense) {
+        await graphqlRequest(updateExpenseMutation, {
+          input: { ...input, expenseId: expense.id },
+        });
+      } else {
+        await graphqlRequest(addExpenseMutation, { input });
+      }
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries();
       onClose();
@@ -59,6 +78,8 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
           budgetId: input.budgetId,
           categoryId: input.categoryId,
           amountMinor: input.amountMinor,
+          expenseDate: input.expenseDate,
+          excludeExpenseId: expense?.id,
         },
         {
           onSuccess: ({ previewExpense }) => {
@@ -86,8 +107,8 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Add an expense"
-      description="Every expense uses the selected budget’s currency."
+      title={expense ? 'Edit expense' : 'Add an expense'}
+      description="The expense date decides which monthly period receives the spending."
     >
       {budgetsQuery.isLoading && <LoadingState label="Loading budgets…" />}
       {budgetsQuery.isError && (
@@ -100,6 +121,7 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
             <select
               name="budgetId"
               value={selectedBudgetId}
+              disabled={Boolean(expense)}
               onChange={(event) => {
                 setBudgetId(event.target.value);
               }}
@@ -110,16 +132,30 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
                 </option>
               ))}
             </select>
+            {expense && <small>Delete and re-add the expense to move it to another budget.</small>}
           </label>
 
           <div className="form-row">
             <label className="form-field form-field--grow">
               <span>Description</span>
-              <input name="title" required maxLength={80} placeholder="Train tickets" />
+              <input
+                name="title"
+                required
+                maxLength={80}
+                placeholder="Train tickets"
+                defaultValue={expense?.title}
+              />
             </label>
             <label className="form-field">
               <span>Category</span>
-              <select name="categoryId" required>
+              <select
+                name="categoryId"
+                required
+                key={selectedBudgetId}
+                defaultValue={
+                  expense?.budgetId === selectedBudgetId ? expense.categoryId : undefined
+                }
+              >
                 {selectedBudget?.categories.map((category) => (
                   <option value={category.id} key={category.id}>
                     {category.name}
@@ -136,6 +172,9 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
               required
               inputMode="decimal"
               placeholder={selectedCurrency === 'JPY' ? '28400' : '42.50'}
+              defaultValue={
+                expense ? minorToMajorInput(expense.amount.minor, expense.amount.currency) : ''
+              }
             />
             <small>The currency is set by {selectedBudget?.name}.</small>
           </label>
@@ -144,8 +183,25 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
             <span>Date</span>
             <span className="input-with-icon">
               <CalendarDays size={17} />
-              <input name="expenseDate" type="date" required defaultValue={todayIso()} />
+              <input
+                name="expenseDate"
+                type="date"
+                required
+                value={expenseDate}
+                onChange={(event) => setExpenseDate(event.target.value)}
+              />
             </span>
+            {selectedBudget?.type === 'MONTHLY' && expenseDate && (
+              <small>
+                This will count toward{' '}
+                {new Intl.DateTimeFormat(undefined, {
+                  month: 'long',
+                  year: 'numeric',
+                  timeZone: 'UTC',
+                }).format(new Date(`${expenseDate.slice(0, 7)}-01T00:00:00Z`))}
+                .
+              </small>
+            )}
           </label>
           <label className="form-field">
             <span>
@@ -156,6 +212,7 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
               maxLength={300}
               rows={3}
               placeholder="Booking reference, who joined, or anything useful later"
+              defaultValue={expense?.notes ?? ''}
             />
           </label>
 
@@ -207,8 +264,12 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId }: Props) {
                 : previewMutation.isPending
                   ? 'Checking…'
                   : warning
-                    ? 'Add anyway'
-                    : 'Save expense'}
+                    ? expense
+                      ? 'Save anyway'
+                      : 'Add anyway'
+                    : expense
+                      ? 'Save changes'
+                      : 'Save expense'}
             </button>
           </div>
         </form>

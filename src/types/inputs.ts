@@ -37,7 +37,22 @@ export type AddExpenseInput = {
   notes: string | null;
 };
 
-export type ExpenseImpactInput = Pick<AddExpenseInput, 'budgetId' | 'categoryId' | 'amountMinor'>;
+export type ExpenseImpactInput = Pick<
+  AddExpenseInput,
+  'budgetId' | 'categoryId' | 'amountMinor' | 'expenseDate'
+> & { excludeExpenseId?: string | null };
+
+export type UpdateExpenseInput = AddExpenseInput & {
+  expenseId: string;
+};
+
+export type ExpenseFilters = {
+  budgetId?: string | null;
+  categoryId?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  search?: string | null;
+};
 
 export type UpdateProfileInput = {
   displayName: string;

@@ -26,6 +26,9 @@ export async function viewerExists(db: D1Database, viewerId: string): Promise<bo
 }
 
 export async function resetViewer(db: D1Database, viewerId: string): Promise<void> {
+  // Monthly period references are intentionally restrictive; remove ledger rows first so
+  // the profile cascade can safely clear budgets and their historical snapshots.
+  await db.prepare('DELETE FROM expenses WHERE viewer_id = ?').bind(viewerId).run();
   await db.prepare('DELETE FROM profiles WHERE viewer_id = ?').bind(viewerId).run();
   await seedViewer(db, viewerId);
 }

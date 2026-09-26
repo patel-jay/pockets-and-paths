@@ -8,13 +8,24 @@ import {
   createAccount,
   createAccountSession,
   deleteAccountSession,
+  deleteOtherAccountSessions,
+  findAccountById,
   findAccountByEmail,
   getAccountSession,
+  listAccountSessions,
   takeRateLimit,
+  updateAccountPassword,
 } from './auth/store';
 import { registrationConfigured, verifyTurnstile } from './auth/turnstile';
 import { clientAddress, normalizeEmail, validPassword } from './auth/validation';
-import { ensureViewer, getProfile, resetViewer, viewerExists } from './data';
+import {
+  ensureViewer,
+  expensesCsv,
+  exportViewerData,
+  getProfile,
+  resetViewer,
+  viewerExists,
+} from './data';
 import { requireText } from './data/validation';
 import { DomainError } from './errors';
 import { schema } from './graphql/schema';
@@ -31,6 +42,7 @@ type RequestIdentity = {
   mode: 'account' | 'demo';
   profile: ProfileRow;
   email?: string;
+  accountToken?: string;
 };
 
 function readCookie(request: Request, name: string): string | null {
@@ -107,6 +119,7 @@ async function getIdentity(request: Request, env: Env): Promise<RequestIdentity 
         viewerId: session.viewerId,
         mode: 'account',
         email: session.email,
+        accountToken,
         profile: session.profile,
       };
     }
@@ -164,6 +177,7 @@ export default {
     if (url.pathname === '/api/auth/config' && request.method === 'GET') {
       const configured = registrationConfigured(env);
       return json({
+        demoEnabled: env.DEMO_ENABLED !== 'false',
         personalAccountsEnabled: Boolean(env.AUTH_PEPPER),
         registrationEnabled: configured,
         turnstileSiteKey: configured ? env.TURNSTILE_SITE_KEY : null,
@@ -178,6 +192,9 @@ export default {
     if (url.pathname === '/api/auth/demo-login' && request.method === 'POST') {
       if (!sameOrigin(request)) {
         return json({ error: 'Cross-origin request rejected.' }, { status: 403 });
+      }
+      if (env.DEMO_ENABLED === 'false') {
+        return json({ error: 'Demo access is disabled.' }, { status: 404 });
       }
       const credentials = await readJson<{ email?: string; password?: string }>(request);
       if (!credentials) {
@@ -256,7 +273,11 @@ export default {
       }
 
       await Promise.all([clearRateLimit(env.DB, accountLimitKey), clearExpiredSessions(env.DB)]);
-      const session = await createAccountSession(env.DB, account.id);
+      const session = await createAccountSession(
+        env.DB,
+        account.id,
+        request.headers.get('user-agent'),
+      );
       const profile = await getProfile(env.DB, account.id);
       const headers = new Headers();
       setCookie(headers, request, ACCOUNT_SESSION_COOKIE, session.token, session.maxAge);
@@ -338,7 +359,11 @@ export default {
       }
 
       await clearExpiredSessions(env.DB);
-      const session = await createAccountSession(env.DB, accountId);
+      const session = await createAccountSession(
+        env.DB,
+        accountId,
+        request.headers.get('user-agent'),
+      );
       const profile = await getProfile(env.DB, accountId);
       const headers = new Headers();
       setCookie(headers, request, ACCOUNT_SESSION_COOKIE, session.token, session.maxAge);
@@ -361,6 +386,72 @@ export default {
       return json({ authenticated: false }, { headers });
     }
 
+    if (url.pathname === '/api/auth/sessions' && request.method === 'GET') {
+      const identity = await getIdentity(request, env);
+      if (!identity || identity.mode !== 'account' || !identity.accountToken) {
+        return json({ error: 'Sign in to your personal account to continue.' }, { status: 403 });
+      }
+      return json({
+        sessions: await listAccountSessions(env.DB, identity.viewerId, identity.accountToken),
+      });
+    }
+
+    if (url.pathname === '/api/auth/logout-others' && request.method === 'POST') {
+      if (!sameOrigin(request)) {
+        return json({ error: 'Cross-origin request rejected.' }, { status: 403 });
+      }
+      const identity = await getIdentity(request, env);
+      if (!identity || identity.mode !== 'account' || !identity.accountToken) {
+        return json({ error: 'Sign in to your personal account to continue.' }, { status: 403 });
+      }
+      const revoked = await deleteOtherAccountSessions(
+        env.DB,
+        identity.viewerId,
+        identity.accountToken,
+      );
+      return json({ revoked });
+    }
+
+    if (url.pathname === '/api/auth/change-password' && request.method === 'POST') {
+      if (!sameOrigin(request)) {
+        return json({ error: 'Cross-origin request rejected.' }, { status: 403 });
+      }
+      if (!env.AUTH_PEPPER) {
+        return json({ error: 'Personal accounts are not configured yet.' }, { status: 503 });
+      }
+      const identity = await getIdentity(request, env);
+      if (!identity || identity.mode !== 'account' || !identity.accountToken) {
+        return json({ error: 'Sign in to your personal account to continue.' }, { status: 403 });
+      }
+      const input = await readJson<{ currentPassword?: unknown; newPassword?: unknown }>(request);
+      const currentPassword =
+        typeof input?.currentPassword === 'string' ? input.currentPassword : '';
+      if (!validPassword(input?.newPassword) || !currentPassword || currentPassword.length > 128) {
+        return json(
+          { error: 'Check the current password and use 12–128 characters for the new password.' },
+          { status: 400 },
+        );
+      }
+      const passwordLimitKey = `change-password:${identity.viewerId}:${clientAddress(request)}`;
+      const passwordLimit = await takeRateLimit(env.DB, passwordLimitKey, {
+        limit: 6,
+        windowMs: 15 * 60 * 1000,
+        blockMs: 15 * 60 * 1000,
+      });
+      if (!passwordLimit.allowed) return rateLimited(passwordLimit.retryAfterSeconds);
+      const account = await findAccountById(env.DB, identity.viewerId);
+      if (
+        !account ||
+        !(await verifyPassword(currentPassword, account.password_hash, env.AUTH_PEPPER))
+      ) {
+        return json({ error: 'The current password is incorrect.' }, { status: 401 });
+      }
+      const passwordHash = await hashPassword(input.newPassword, env.AUTH_PEPPER);
+      await updateAccountPassword(env.DB, identity.viewerId, passwordHash, identity.accountToken);
+      await clearRateLimit(env.DB, passwordLimitKey);
+      return json({ changed: true, otherSessionsRevoked: true });
+    }
+
     if (url.pathname === '/api/auth/reset' && request.method === 'POST') {
       if (!sameOrigin(request)) {
         return json({ error: 'Cross-origin request rejected.' }, { status: 403 });
@@ -371,6 +462,29 @@ export default {
       }
       await resetViewer(env.DB, identity.viewerId);
       return json({ reset: true });
+    }
+
+    if (url.pathname === '/api/export' && request.method === 'GET') {
+      const identity = await getIdentity(request, env);
+      if (!identity) return json({ error: 'Sign in to continue.' }, { status: 401 });
+      const exported = await exportViewerData(env.DB, identity.viewerId);
+      const date = new Date().toISOString().slice(0, 10);
+      if (url.searchParams.get('format') === 'csv') {
+        return new Response(expensesCsv(exported.expenses as Record<string, unknown>[]), {
+          headers: {
+            'content-type': 'text/csv; charset=utf-8',
+            'content-disposition': `attachment; filename="pockets-and-paths-expenses-${date}.csv"`,
+            'cache-control': 'no-store',
+          },
+        });
+      }
+      return new Response(JSON.stringify(exported, null, 2), {
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'content-disposition': `attachment; filename="pockets-and-paths-backup-${date}.json"`,
+          'cache-control': 'no-store',
+        },
+      });
     }
 
     if (url.pathname === '/graphql') {

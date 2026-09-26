@@ -58,6 +58,7 @@ export const typeDefs = /* GraphQL */ `
     endDate: String
     status: BudgetStatus!
     phase: BudgetPhase!
+    periodStart: String
     categories: [Category!]!
     expenses(limit: Int = 50): [Expense!]!
   }
@@ -70,10 +71,17 @@ export const typeDefs = /* GraphQL */ `
     notes: String
     budgetId: ID!
     budgetName: String!
+    budgetStatus: BudgetStatus!
     categoryId: ID!
     categoryName: String!
     categoryColor: String!
     categoryIcon: String!
+    periodStart: String
+  }
+
+  type ExpensePage {
+    items: [Expense!]!
+    nextCursor: String
   }
 
   type Dashboard {
@@ -131,10 +139,30 @@ export const typeDefs = /* GraphQL */ `
     notes: String
   }
 
+  input UpdateExpenseInput {
+    expenseId: ID!
+    budgetId: ID!
+    categoryId: ID!
+    title: String!
+    amountMinor: String!
+    expenseDate: String!
+    notes: String
+  }
+
   input ExpenseImpactInput {
     budgetId: ID!
     categoryId: ID!
     amountMinor: String!
+    expenseDate: String!
+    excludeExpenseId: ID
+  }
+
+  input ExpenseFilterInput {
+    budgetId: ID
+    categoryId: ID
+    dateFrom: String
+    dateTo: String
+    search: String
   }
 
   type ExpenseImpact {
@@ -158,8 +186,9 @@ export const typeDefs = /* GraphQL */ `
     dashboard: Dashboard!
     profile: Profile!
     budgets(status: BudgetStatus = ACTIVE): [Budget!]!
-    budget(id: ID!): Budget
+    budget(id: ID!, periodStart: String): Budget
     expenses(budgetId: ID, limit: Int = 100): [Expense!]!
+    expensePage(filter: ExpenseFilterInput, first: Int = 25, after: String): ExpensePage!
   }
 
   type Mutation {
@@ -171,6 +200,8 @@ export const typeDefs = /* GraphQL */ `
     updateCategory(input: UpdateCategoryInput!): Category!
     splitCategoryLimits(budgetId: ID!): Budget!
     addExpense(input: AddExpenseInput!): Expense!
+    updateExpense(input: UpdateExpenseInput!): Expense!
+    deleteExpense(id: ID!): Boolean!
     previewExpense(input: ExpenseImpactInput!): ExpenseImpact!
     updateProfile(input: UpdateProfileInput!): Profile!
   }

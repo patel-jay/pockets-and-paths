@@ -17,6 +17,7 @@ export type AuthSession =
     };
 
 export type AuthConfig = {
+  demoEnabled: boolean;
   personalAccountsEnabled: boolean;
   registrationEnabled: boolean;
   turnstileSiteKey: string | null;
@@ -28,6 +29,13 @@ export type RegistrationInput = {
   password: string;
   inviteCode: string;
   turnstileToken: string;
+};
+
+export type AccountSessionSummary = {
+  current: boolean;
+  createdAt: string;
+  expiresAt: number;
+  userAgent: string | null;
 };
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -76,4 +84,22 @@ export function logout(): Promise<AuthSession> {
 
 export function resetDemo(): Promise<{ reset: true }> {
   return authRequest('/api/auth/reset', { method: 'POST', body: '{}' });
+}
+
+export function getAccountSessions(): Promise<{ sessions: AccountSessionSummary[] }> {
+  return authRequest('/api/auth/sessions');
+}
+
+export function logoutOtherSessions(): Promise<{ revoked: number }> {
+  return authRequest('/api/auth/logout-others', { method: 'POST', body: '{}' });
+}
+
+export function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ changed: true; otherSessionsRevoked: true }> {
+  return authRequest('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
 }

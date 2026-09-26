@@ -4,6 +4,11 @@ const INVITE_CODE = 'choose-a-private-local-invite-code';
 const TURNSTILE_TEST_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
 const BASE_URL = 'http://127.0.0.1:4173';
 
+function uniqueTestAddress(): string {
+  const suffix = crypto.randomUUID().replaceAll('-', '').slice(0, 16).match(/.{4}/g)!;
+  return `2001:db8:${suffix.join(':')}`;
+}
+
 async function graphql<T>(
   api: APIRequestContext,
   query: string,
@@ -19,7 +24,11 @@ test('registers an invite-only personal account and restores it in a new session
 }) => {
   const email = `owner-${Date.now()}-${crypto.randomUUID()}@example.com`;
   const password = 'a long integration passphrase';
-  const firstDevice = await playwright.request.newContext({ baseURL: BASE_URL });
+  const accountAddress = uniqueTestAddress();
+  const firstDevice = await playwright.request.newContext({
+    baseURL: BASE_URL,
+    extraHTTPHeaders: { 'CF-Connecting-IP': accountAddress },
+  });
 
   try {
     const registration = await firstDevice.post('/api/auth/register', {
@@ -78,7 +87,10 @@ test('registers an invite-only personal account and restores it in a new session
     await firstDevice.dispose();
   }
 
-  const secondDevice = await playwright.request.newContext({ baseURL: BASE_URL });
+  const secondDevice = await playwright.request.newContext({
+    baseURL: BASE_URL,
+    extraHTTPHeaders: { 'CF-Connecting-IP': accountAddress },
+  });
   try {
     const wrongPassword = await secondDevice.post('/api/auth/login', {
       data: { email, password: 'this is not the right password' },
@@ -98,6 +110,35 @@ test('registers an invite-only personal account and restores it in a new session
       'query ReopenedPersonalAccount { budgets { name } }',
     );
     expect(reopened.data?.budgets).toContainEqual({ name: 'Private monthly plan' });
+
+    const sessions = await secondDevice.get('/api/auth/sessions');
+    expect(sessions.ok()).toBe(true);
+    await expect(sessions.json()).resolves.toMatchObject({
+      sessions: [expect.objectContaining({ current: true })],
+    });
+
+    const exported = await secondDevice.get('/api/export?format=json');
+    expect(exported.ok()).toBe(true);
+    await expect(exported.json()).resolves.toMatchObject({
+      formatVersion: 1,
+      budgets: [expect.objectContaining({ name: 'Private monthly plan' })],
+      budgetPeriods: [],
+    });
+
+    const nextPassword = 'an updated integration passphrase';
+    const changed = await secondDevice.post('/api/auth/change-password', {
+      data: { currentPassword: password, newPassword: nextPassword },
+    });
+    expect(changed.ok()).toBe(true);
+
+    const logout = await secondDevice.post('/api/auth/logout', { data: {} });
+    expect(logout.ok()).toBe(true);
+    const oldLogin = await secondDevice.post('/api/auth/login', { data: { email, password } });
+    expect(oldLogin.status()).toBe(401);
+    const newLogin = await secondDevice.post('/api/auth/login', {
+      data: { email, password: nextPassword },
+    });
+    expect(newLogin.ok()).toBe(true);
   } finally {
     await secondDevice.dispose();
   }
@@ -132,7 +173,7 @@ test('keeps successful registrations inside the address rate-limit window', asyn
 }) => {
   const api = await playwright.request.newContext({
     baseURL: BASE_URL,
-    extraHTTPHeaders: { 'CF-Connecting-IP': '203.0.113.52' },
+    extraHTTPHeaders: { 'CF-Connecting-IP': uniqueTestAddress() },
   });
 
   try {

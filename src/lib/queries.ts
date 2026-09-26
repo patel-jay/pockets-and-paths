@@ -1,18 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   budgetQuery,
   budgetsQuery,
   archivedBudgetsQuery,
   dashboardQuery,
   expensesQuery,
+  expensePageQuery,
   graphqlRequest,
   profileQuery,
 } from './graphql';
+import type { ExpenseFilters } from '../types/inputs';
 
 export const queryKeys = {
   dashboard: ['dashboard'] as const,
   budgets: ['budgets'] as const,
-  budget: (id: string) => ['budget', id] as const,
+  budget: (id: string, periodStart?: string) =>
+    periodStart ? (['budget', id, periodStart] as const) : (['budget', id] as const),
   expenses: ['expenses'] as const,
   profile: ['profile'] as const,
 };
@@ -38,11 +41,25 @@ export function useArchivedBudgets() {
   });
 }
 
-export function useBudget(id: string) {
+export function useBudget(id: string, periodStart?: string) {
   return useQuery({
-    queryKey: queryKeys.budget(id),
-    queryFn: () => graphqlRequest(budgetQuery, { id }),
+    queryKey: queryKeys.budget(id, periodStart),
+    queryFn: () => graphqlRequest(budgetQuery, { id, periodStart }),
     enabled: Boolean(id),
+  });
+}
+
+export function useExpensePage(filter: ExpenseFilters) {
+  return useInfiniteQuery({
+    queryKey: [...queryKeys.expenses, filter],
+    queryFn: ({ pageParam }) =>
+      graphqlRequest(expensePageQuery, {
+        filter,
+        first: 25,
+        after: pageParam || undefined,
+      }),
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.expensePage.nextCursor ?? undefined,
   });
 }
 

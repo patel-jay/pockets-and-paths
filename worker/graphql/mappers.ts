@@ -15,10 +15,12 @@ export function mapExpense(expense: ExpenseRow) {
     notes: expense.notes,
     budgetId: expense.budget_id,
     budgetName: expense.budget_name ?? '',
+    budgetStatus: expense.budget_status ?? 'ACTIVE',
     categoryId: expense.category_id,
     categoryName: expense.category_name ?? '',
     categoryColor: expense.category_color ?? '#2e7064',
     categoryIcon: expense.category_icon ?? 'receipt',
+    periodStart: expense.period_start ?? null,
   };
 }
 
@@ -41,16 +43,17 @@ export function mapCategory(category: CategoryRow, budgetCurrency: string) {
 }
 
 export function mapBudget(budget: BudgetRow, today = utcTodayIso()) {
+  const amount = budget.period_amount_minor ?? budget.amount_minor;
   const spent = budget.spent_minor ?? 0;
   const allocated = budget.allocated_minor ?? 0;
-  const position = spendingPosition(spent, budget.amount_minor);
-  const allocation = spendingPosition(allocated, budget.amount_minor);
+  const position = spendingPosition(spent, amount);
+  const allocation = spendingPosition(allocated, amount);
   return {
     id: budget.id,
     name: budget.name,
     type: budget.type,
     currency: budget.reporting_currency,
-    amount: mapMoney(budget.amount_minor, budget.reporting_currency),
+    amount: mapMoney(amount, budget.reporting_currency),
     spent: mapMoney(spent, budget.reporting_currency),
     remaining: mapMoney(position.remaining, budget.reporting_currency),
     overspent: mapMoney(position.overspent, budget.reporting_currency),
@@ -70,5 +73,9 @@ export function mapBudget(budget: BudgetRow, today = utcTodayIso()) {
       },
       today,
     ),
+    periodStart:
+      budget.type === 'MONTHLY' ? (budget.period_start ?? today.slice(0, 7) + '-01') : null,
+    _periodId: budget.period_id ?? null,
+    _periodScoped: budget.type === 'MONTHLY',
   };
 }

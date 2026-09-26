@@ -35,6 +35,10 @@ export async function findAccountByEmail(
   return db.prepare('SELECT * FROM accounts WHERE email = ?').bind(email).first<AccountRow>();
 }
 
+export async function findAccountById(db: D1Database, id: string): Promise<AccountRow | null> {
+  return db.prepare('SELECT * FROM accounts WHERE id = ?').bind(id).first<AccountRow>();
+}
+
 export async function createAccount(
   db: D1Database,
   input: { id: string; email: string; passwordHash: string; displayName: string },
@@ -59,6 +63,7 @@ export async function createAccount(
 export async function createAccountSession(
   db: D1Database,
   accountId: string,
+  userAgent?: string | null,
 ): Promise<{ token: string; maxAge: number }> {
   const token = createSessionToken();
   const tokenHash = await hashToken(token);
@@ -66,12 +71,74 @@ export async function createAccountSession(
   const expiresAt = now + SESSION_SECONDS * 1000;
   await db
     .prepare(
-      `INSERT INTO account_sessions (token_hash, account_id, expires_at, created_at)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO account_sessions (token_hash, account_id, expires_at, created_at, user_agent)
+       VALUES (?, ?, ?, ?, ?)`,
     )
-    .bind(tokenHash, accountId, expiresAt, new Date(now).toISOString())
+    .bind(
+      tokenHash,
+      accountId,
+      expiresAt,
+      new Date(now).toISOString(),
+      userAgent?.slice(0, 200) ?? null,
+    )
     .run();
   return { token, maxAge: SESSION_SECONDS };
+}
+
+export async function listAccountSessions(
+  db: D1Database,
+  accountId: string,
+  currentToken: string,
+): Promise<
+  Array<{ current: boolean; createdAt: string; expiresAt: number; userAgent: string | null }>
+> {
+  const currentHash = await hashToken(currentToken);
+  const { results } = await db
+    .prepare(
+      `SELECT token_hash, created_at, expires_at, user_agent
+       FROM account_sessions
+       WHERE account_id = ? AND expires_at > ?
+       ORDER BY created_at DESC`,
+    )
+    .bind(accountId, Date.now())
+    .all<{
+      token_hash: string;
+      created_at: string;
+      expires_at: number;
+      user_agent: string | null;
+    }>();
+  return results.map((session) => ({
+    current: session.token_hash === currentHash,
+    createdAt: session.created_at,
+    expiresAt: session.expires_at,
+    userAgent: session.user_agent,
+  }));
+}
+
+export async function deleteOtherAccountSessions(
+  db: D1Database,
+  accountId: string,
+  currentToken: string,
+): Promise<number> {
+  const result = await db
+    .prepare('DELETE FROM account_sessions WHERE account_id = ? AND token_hash <> ?')
+    .bind(accountId, await hashToken(currentToken))
+    .run();
+  return result.meta.changes;
+}
+
+export async function updateAccountPassword(
+  db: D1Database,
+  accountId: string,
+  passwordHash: string,
+  currentToken: string,
+): Promise<void> {
+  await db.batch([
+    db.prepare('UPDATE accounts SET password_hash = ? WHERE id = ?').bind(passwordHash, accountId),
+    db
+      .prepare('DELETE FROM account_sessions WHERE account_id = ? AND token_hash <> ?')
+      .bind(accountId, await hashToken(currentToken)),
+  ]);
 }
 
 export async function getAccountSession(

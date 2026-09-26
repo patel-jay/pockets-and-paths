@@ -37,6 +37,24 @@
   flex: none;
 }
 
+.period-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 12px;
+
+  span {
+    color: var(--ink-soft);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  input {
+    min-height: 38px;
+    padding: 7px 10px;
+  }
+}
+
 .archived-label {
   display: inline-flex;
   min-height: 26px;
@@ -439,4 +457,26 @@
   display: flex;
   flex: none;
   gap: 8px;
+}
+
+.session-card__actions a {
+  text-decoration: none;
+}
+
+.account-security {
+  display: grid;
+  gap: 22px;
+  margin-top: 18px;
+
+  h2 {
+    margin: 5px 0 0;
+    font-family: var(--font-display);
+    font-size: 22px;
+  }
+
+  > div > p:last-child {
+    margin: 7px 0 0;
+    color: var(--ink-soft);
+    font-size: 12px;
+  }
 }

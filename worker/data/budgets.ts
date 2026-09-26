@@ -6,6 +6,7 @@ import {
 } from '../../shared/category-presets';
 import type { BudgetRow, BudgetStatus, CreateBudgetInput, UpdateBudgetInput } from '../types';
 import { requireCurrency, requireIsoDate, requirePositiveMinor, requireText } from './validation';
+import { monthStart } from './periods';
 
 export function requireActiveBudget(budget: BudgetRow): void {
   if (budget.status === 'ARCHIVED') {
@@ -17,19 +18,29 @@ export async function getBudgets(
   db: D1Database,
   viewerId: string,
   status: BudgetStatus = 'ACTIVE',
+  periodStart = monthStart(),
 ): Promise<BudgetRow[]> {
   const { results } = await db
     .prepare(
-      `SELECT b.*, COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor,
-              COALESCE((SELECT SUM(c.limit_minor_optional) FROM categories c WHERE c.budget_id = b.id), 0)
-                AS allocated_minor
+      `SELECT b.*, p.id AS period_id, p.period_start,
+              p.amount_minor AS period_amount_minor,
+              COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor,
+              CASE
+                WHEN b.type = 'MONTHLY' AND p.id IS NOT NULL THEN
+                  COALESCE((SELECT SUM(cpl.limit_minor) FROM category_period_limits cpl WHERE cpl.period_id = p.id), 0)
+                ELSE COALESCE((SELECT SUM(c.limit_minor_optional) FROM categories c WHERE c.budget_id = b.id), 0)
+              END AS allocated_minor
        FROM budgets b
-       LEFT JOIN expenses e ON e.budget_id = b.id AND e.viewer_id = b.viewer_id
+       LEFT JOIN budget_periods p
+         ON p.budget_id = b.id AND p.viewer_id = b.viewer_id AND p.period_start = ?
+       LEFT JOIN expenses e
+         ON e.budget_id = b.id AND e.viewer_id = b.viewer_id
+        AND (b.type = 'TEMPORARY' OR e.period_id = p.id)
        WHERE b.viewer_id = ? AND b.status = ?
        GROUP BY b.id
        ORDER BY b.type ASC, b.start_date ASC`,
     )
-    .bind(viewerId, status)
+    .bind(monthStart(periodStart), viewerId, status)
     .all<BudgetRow>();
 
   return results;
@@ -39,19 +50,32 @@ export async function getBudget(
   db: D1Database,
   viewerId: string,
   budgetId: string,
+  periodStart = monthStart(),
 ): Promise<BudgetRow | null> {
-  return db
+  const selectedPeriod = monthStart(periodStart);
+  const budget = await db
     .prepare(
-      `SELECT b.*, COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor,
-              COALESCE((SELECT SUM(c.limit_minor_optional) FROM categories c WHERE c.budget_id = b.id), 0)
-                AS allocated_minor
+      `SELECT b.*, p.id AS period_id, p.period_start,
+              p.amount_minor AS period_amount_minor,
+              COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor,
+              CASE
+                WHEN b.type = 'MONTHLY' AND p.id IS NOT NULL THEN
+                  COALESCE((SELECT SUM(cpl.limit_minor) FROM category_period_limits cpl WHERE cpl.period_id = p.id), 0)
+                ELSE COALESCE((SELECT SUM(c.limit_minor_optional) FROM categories c WHERE c.budget_id = b.id), 0)
+              END AS allocated_minor
        FROM budgets b
-       LEFT JOIN expenses e ON e.budget_id = b.id AND e.viewer_id = b.viewer_id
+       LEFT JOIN budget_periods p
+         ON p.budget_id = b.id AND p.viewer_id = b.viewer_id AND p.period_start = ?
+       LEFT JOIN expenses e
+         ON e.budget_id = b.id AND e.viewer_id = b.viewer_id
+        AND (b.type = 'TEMPORARY' OR e.period_id = p.id)
        WHERE b.viewer_id = ? AND b.id = ?
        GROUP BY b.id`,
     )
-    .bind(viewerId, budgetId)
+    .bind(selectedPeriod, viewerId, budgetId)
     .first<BudgetRow>();
+  if (budget?.type === 'MONTHLY' && !budget.period_start) budget.period_start = selectedPeriod;
+  return budget;
 }
 
 export async function createBudget(
@@ -156,6 +180,15 @@ export async function updateBudget(
     .run();
 
   if (result.meta.changes !== 1) throw new DomainError('Budget was not found.', 'NOT_FOUND');
+  if (existing.type === 'MONTHLY') {
+    await db
+      .prepare(
+        `UPDATE budget_periods SET amount_minor = ?
+         WHERE budget_id = ? AND viewer_id = ? AND period_start >= ?`,
+      )
+      .bind(amountMinor, input.budgetId, viewerId, monthStart())
+      .run();
+  }
   const budget = await getBudget(db, viewerId, input.budgetId);
   if (!budget) throw new Error('Updated budget could not be loaded.');
   return budget;

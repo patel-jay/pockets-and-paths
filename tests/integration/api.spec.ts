@@ -213,6 +213,7 @@ test('updates, archives, and restores a budget without losing its history', asyn
           budgetId: temporaryBudget.id,
           categoryId: temporaryBudget.categories[0].id,
           amountMinor: '1000',
+          expenseDate: '2031-03-15',
         },
       },
     );
@@ -489,6 +490,7 @@ test('rejects a category owned by another viewer', async ({ playwright }) => {
           budgetId: ownBudgetId,
           categoryId: foreignCategoryId,
           amountMinor: '10000',
+          expenseDate: new Date().toISOString().slice(0, 10),
         },
       },
     );
@@ -507,7 +509,12 @@ test('previews and records an expense beyond the overall budget', async ({ playw
     await login(api);
     await reset(api);
     const initial = await graphql<{
-      budgets: { id: string; currency: string; categories: { id: string }[] }[];
+      budgets: {
+        id: string;
+        currency: string;
+        startDate: string;
+        categories: { id: string }[];
+      }[];
     }>(api, budgetsQuery);
     const budget = initial.data!.budgets[0];
     const input = {
@@ -515,7 +522,7 @@ test('previews and records an expense beyond the overall budget', async ({ playw
       categoryId: budget.categories[0].id,
       title: 'Emergency rebooking',
       amountMinor: '50000000',
-      expenseDate: '2031-01-15',
+      expenseDate: `${budget.startDate.slice(0, 7)}-15`,
       notes: 'Integration test expense',
     };
 
@@ -523,6 +530,7 @@ test('previews and records an expense beyond the overall budget', async ({ playw
       budgetId: input.budgetId,
       categoryId: input.categoryId,
       amountMinor: input.amountMinor,
+      expenseDate: input.expenseDate,
     };
     const preview = await graphql<{
       previewExpense: { budgetWillOverspend: boolean; budgetOverspent: { minor: string } };
@@ -578,6 +586,175 @@ test('previews and records an expense beyond the overall budget', async ({ playw
     expect(updatedBudget.isOverBudget).toBe(true);
     expect(updatedBudget.progress).toBeGreaterThan(100);
     expect(Number(updatedBudget.overspent.minor)).toBeGreaterThan(0);
+  } finally {
+    await api.dispose();
+  }
+});
+
+test('moves edited expenses between monthly periods and pages the ledger', async ({
+  playwright,
+}) => {
+  const api = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:4173' });
+
+  try {
+    await login(api);
+    const created = await graphql<{
+      createBudget: { id: string; categories: { id: string }[] };
+    }>(
+      api,
+      `
+        mutation CreatePeriodBudget($input: CreateBudgetInput!) {
+          createBudget(input: $input) {
+            id
+            categories {
+              id
+            }
+          }
+        }
+      `,
+      {
+        input: {
+          name: `Period test ${crypto.randomUUID()}`,
+          type: 'MONTHLY',
+          currency: 'SGD',
+          amountMinor: '100000',
+          startDate: '2030-01-01',
+          endDate: null,
+        },
+      },
+    );
+    expect(created.errors).toBeUndefined();
+    const budgetId = created.data!.createBudget.id;
+    const categoryId = created.data!.createBudget.categories[0].id;
+
+    const add = async (title: string, amountMinor: string, expenseDate: string) => {
+      const result = await graphql<{ addExpense: { id: string } }>(
+        api,
+        `
+          mutation AddPeriodExpense($input: AddExpenseInput!) {
+            addExpense(input: $input) {
+              id
+            }
+          }
+        `,
+        {
+          input: {
+            budgetId,
+            categoryId,
+            title,
+            amountMinor,
+            expenseDate,
+            notes: null,
+          },
+        },
+      );
+      expect(result.errors).toBeUndefined();
+      return result.data!.addExpense.id;
+    };
+
+    const movedExpenseId = await add('January first', '500', '2030-01-08');
+    await add('January second', '700', '2030-01-09');
+
+    const firstPage = await graphql<{
+      expensePage: { items: { id: string }[]; nextCursor: string | null };
+    }>(
+      api,
+      `
+        query PeriodExpensePage($filter: ExpenseFilterInput!, $after: String) {
+          expensePage(filter: $filter, first: 1, after: $after) {
+            items {
+              id
+            }
+            nextCursor
+          }
+        }
+      `,
+      { filter: { budgetId, dateFrom: '2030-01-01', dateTo: '2030-01-31' } },
+    );
+    expect(firstPage.data?.expensePage.items).toHaveLength(1);
+    expect(firstPage.data?.expensePage.nextCursor).toBeTruthy();
+
+    const secondPage = await graphql<{
+      expensePage: { items: { id: string }[]; nextCursor: string | null };
+    }>(
+      api,
+      `
+        query PeriodExpensePage($filter: ExpenseFilterInput!, $after: String) {
+          expensePage(filter: $filter, first: 1, after: $after) {
+            items {
+              id
+            }
+            nextCursor
+          }
+        }
+      `,
+      {
+        filter: { budgetId, dateFrom: '2030-01-01', dateTo: '2030-01-31' },
+        after: firstPage.data!.expensePage.nextCursor,
+      },
+    );
+    expect(secondPage.data?.expensePage.items[0].id).not.toBe(
+      firstPage.data?.expensePage.items[0].id,
+    );
+
+    const updated = await graphql<{ updateExpense: { id: string } }>(
+      api,
+      `
+        mutation MovePeriodExpense($input: UpdateExpenseInput!) {
+          updateExpense(input: $input) {
+            id
+          }
+        }
+      `,
+      {
+        input: {
+          expenseId: movedExpenseId,
+          budgetId,
+          categoryId,
+          title: 'Moved to February',
+          amountMinor: '900',
+          expenseDate: '2030-02-03',
+          notes: null,
+        },
+      },
+    );
+    expect(updated.errors).toBeUndefined();
+
+    const periods = await graphql<{
+      january: { spent: { minor: string }; periodStart: string };
+      february: { spent: { minor: string }; periodStart: string };
+    }>(
+      api,
+      `
+        query PeriodTotals($id: ID!) {
+          january: budget(id: $id, periodStart: "2030-01-01") {
+            spent {
+              minor
+            }
+            periodStart
+          }
+          february: budget(id: $id, periodStart: "2030-02-01") {
+            spent {
+              minor
+            }
+            periodStart
+          }
+        }
+      `,
+      { id: budgetId },
+    );
+    expect(periods.data?.january).toEqual({ spent: { minor: '700' }, periodStart: '2030-01-01' });
+    expect(periods.data?.february).toEqual({
+      spent: { minor: '900' },
+      periodStart: '2030-02-01',
+    });
+
+    const removed = await graphql<{ deleteExpense: boolean }>(
+      api,
+      'mutation DeletePeriodExpense($id: ID!) { deleteExpense(id: $id) }',
+      { id: movedExpenseId },
+    );
+    expect(removed.data?.deleteExpense).toBe(true);
   } finally {
     await api.dispose();
   }

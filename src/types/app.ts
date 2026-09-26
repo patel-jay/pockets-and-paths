@@ -44,6 +44,7 @@ export type Budget = {
   endDate: string | null;
   status: 'ACTIVE' | 'ARCHIVED';
   phase: BudgetPhase;
+  periodStart: string | null;
   categories: Category[];
   expenses?: Expense[];
 };
@@ -56,10 +57,17 @@ export type Expense = {
   notes: string | null;
   budgetId: string;
   budgetName: string;
+  budgetStatus: 'ACTIVE' | 'ARCHIVED';
   categoryId: string;
   categoryName: string;
   categoryColor: string;
   categoryIcon: CategoryIconKey;
+  periodStart: string | null;
+};
+
+export type ExpensePage = {
+  items: Expense[];
+  nextCursor: string | null;
 };
 
 export type CurrencyBalance = {

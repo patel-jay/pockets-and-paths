@@ -3,5 +3,7 @@ TURNSTILE_SITE_KEY="1x00000000000000000000AA"
 TURNSTILE_SECRET_KEY="1x0000000000000000000000000000000AA"
 
 # Replace both values before any public deployment.
+DEMO_ENABLED="true"
+REGISTRATION_ENABLED="true"
 REGISTRATION_INVITE_CODE="choose-a-private-local-invite-code"
 AUTH_PEPPER="choose-a-long-random-local-pepper-at-least-32-characters"

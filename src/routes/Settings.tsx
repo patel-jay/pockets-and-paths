@@ -1,12 +1,18 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, LogOut, RotateCcw } from 'lucide-react';
+import { CheckCircle2, Download, KeyRound, LogOut, RotateCcw, ShieldCheck } from 'lucide-react';
 import { ErrorState, LoadingState } from '../components/AsyncState';
 import { PageHeader } from '../components/PageHeader';
 import { graphqlRequest, updateProfileMutation } from '../lib/graphql';
 import { supportedCurrencies } from '../lib/money';
 import { useProfile } from '../lib/queries';
 import { useAuth } from '../lib/auth-context';
+import {
+  changePassword,
+  getAccountSessions,
+  logoutOtherSessions,
+  type AccountSessionSummary,
+} from '../lib/auth';
 import type { UpdateProfileInput } from '../types/inputs';
 
 export function SettingsPage() {
@@ -16,12 +22,22 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [sessionPending, setSessionPending] = useState<'reset' | 'logout' | null>(null);
   const [sessionError, setSessionError] = useState('');
+  const [accountSessions, setAccountSessions] = useState<AccountSessionSummary[]>([]);
+  const [accountPending, setAccountPending] = useState<'password' | 'sessions' | null>(null);
+  const [accountMessage, setAccountMessage] = useState('');
+  const [accountError, setAccountError] = useState('');
   useEffect(() => {
     if (saved) {
       const id = window.setTimeout(() => setSaved(false), 2500);
       return () => clearTimeout(id);
     }
   }, [saved]);
+  useEffect(() => {
+    if (mode !== 'account') return;
+    void getAccountSessions()
+      .then(({ sessions }) => setAccountSessions(sessions))
+      .catch(() => setAccountSessions([]));
+  }, [mode]);
   const mutation = useMutation({
     mutationFn: (input: UpdateProfileInput) => graphqlRequest(updateProfileMutation, { input }),
     onSuccess: async () => {
@@ -68,6 +84,53 @@ export function SettingsPage() {
       setSessionError(caught instanceof Error ? caught.message : 'The demo could not sign out.');
     } finally {
       setSessionPending(null);
+    }
+  };
+
+  const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const next = String(form.get('newPassword'));
+    if (next !== String(form.get('confirmPassword'))) {
+      setAccountError('The two new passwords do not match.');
+      return;
+    }
+    setAccountPending('password');
+    setAccountError('');
+    setAccountMessage('');
+    try {
+      await changePassword(String(form.get('currentPassword')), next);
+      formElement.reset();
+      setAccountSessions((sessions) => sessions.filter((session) => session.current));
+      setAccountMessage('Password updated. Other devices were signed out.');
+    } catch (caught) {
+      setAccountError(
+        caught instanceof Error ? caught.message : 'The password could not be updated.',
+      );
+    } finally {
+      setAccountPending(null);
+    }
+  };
+
+  const signOutOthers = async () => {
+    setAccountPending('sessions');
+    setAccountError('');
+    setAccountMessage('');
+    try {
+      const { revoked } = await logoutOtherSessions();
+      setAccountSessions((sessions) => sessions.filter((session) => session.current));
+      setAccountMessage(
+        revoked
+          ? `${revoked} other session${revoked === 1 ? '' : 's'} signed out.`
+          : 'No other active sessions were found.',
+      );
+    } catch (caught) {
+      setAccountError(
+        caught instanceof Error ? caught.message : 'Other sessions could not be signed out.',
+      );
+    } finally {
+      setAccountPending(null);
     }
   };
 
@@ -141,6 +204,94 @@ export function SettingsPage() {
           </div>
         </form>
       </section>
+      <section className="settings-card session-card" aria-labelledby="export-title">
+        <div>
+          <p className="eyebrow">Your data</p>
+          <h2 id="export-title">Export and backup</h2>
+          <p>
+            Download a spreadsheet-friendly expense ledger or a complete JSON copy of your data.
+          </p>
+        </div>
+        <div className="session-card__actions">
+          <a className="secondary-button" href="/api/export?format=csv" download>
+            <Download size={16} />
+            Expenses CSV
+          </a>
+          <a className="secondary-button" href="/api/export?format=json" download>
+            <Download size={16} />
+            Full JSON copy
+          </a>
+        </div>
+      </section>
+      {mode === 'account' && (
+        <section className="settings-card account-security" aria-labelledby="security-title">
+          <div>
+            <p className="eyebrow">Account security</p>
+            <h2 id="security-title">Password and sessions</h2>
+            <p>
+              {accountSessions.length} active session{accountSessions.length === 1 ? '' : 's'}.
+              Changing your password also signs out every other device.
+            </p>
+          </div>
+          <form className="form-stack" onSubmit={submitPassword}>
+            <label className="form-field">
+              <span>Current password</span>
+              <input
+                name="currentPassword"
+                type="password"
+                required
+                maxLength={128}
+                autoComplete="current-password"
+              />
+            </label>
+            <div className="form-row">
+              <label className="form-field form-field--grow">
+                <span>New password</span>
+                <input
+                  name="newPassword"
+                  type="password"
+                  required
+                  minLength={12}
+                  maxLength={128}
+                  autoComplete="new-password"
+                />
+              </label>
+              <label className="form-field form-field--grow">
+                <span>Confirm new password</span>
+                <input
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  minLength={12}
+                  maxLength={128}
+                  autoComplete="new-password"
+                />
+              </label>
+            </div>
+            <div className="form-actions form-actions--start">
+              <button className="primary-button" type="submit" disabled={accountPending !== null}>
+                <KeyRound size={16} />
+                {accountPending === 'password' ? 'Updating…' : 'Change password'}
+              </button>
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={accountPending !== null}
+                onClick={() => void signOutOthers()}
+              >
+                <ShieldCheck size={16} />
+                {accountPending === 'sessions' ? 'Signing out…' : 'Sign out other devices'}
+              </button>
+            </div>
+            {accountMessage && <p className="saved-message">{accountMessage}</p>}
+            {accountError && (
+              <p className="form-error" role="alert">
+                {accountError}
+              </p>
+            )}
+          </form>
+        </section>
+      )}
       <section className="settings-card session-card" aria-labelledby="session-title">
         <div>
           <p className="eyebrow">{mode === 'demo' ? 'Browser sandbox' : 'Account access'}</p>

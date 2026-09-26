@@ -601,6 +601,10 @@
   }
 }
 
+.expense-row--editable {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
 .expense-row__icon {
   width: 39px;
   height: 39px;
@@ -624,6 +628,60 @@
 
 .expense-row__amount {
   text-align: right;
+}
+
+.expense-row__actions {
+  display: flex;
+  gap: 4px;
+
+  button {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border: 0;
+    border-radius: 9px;
+    color: var(--ink-soft);
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--forest);
+      background: #eaf1ed;
+    }
+
+    &:last-child:hover {
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
+  }
+}
+
+.ledger-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) repeat(4, minmax(130px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.78);
+}
+
+.ledger-filters__heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.ledger-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 18px;
+  border-top: 1px solid rgba(24, 51, 48, 0.075);
 }
 
 .mobile-nav {

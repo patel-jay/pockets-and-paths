@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Pencil, Plus, Shuffle } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
+import { AddExpenseModal } from '../components/AddExpenseModal';
 import { EmptyState, ErrorState, LoadingState } from '../components/AsyncState';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { CategoryIconPicker } from '../components/CategoryIconPicker';
@@ -15,9 +16,9 @@ import {
   graphqlRequest,
   splitCategoryLimitsMutation,
 } from '../lib/graphql';
-import { formatBudgetPeriod, formatMoney, parseMajorToMinor } from '../lib/money';
+import { formatBudgetPeriod, formatMoney, parseMajorToMinor, todayIso } from '../lib/money';
 import { queryKeys, useBudget, useProfile } from '../lib/queries';
-import type { Category } from '../types/app';
+import type { Category, Expense } from '../types/app';
 import type { CreateCategoryInput } from '../types/inputs';
 import {
   defaultCategoryIcon,
@@ -29,7 +30,9 @@ const defaultCategoryColor = '#2e7064';
 
 export function BudgetDetailPage() {
   const { budgetId = '' } = useParams();
-  const query = useBudget(budgetId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedMonth = searchParams.get('month');
+  const query = useBudget(budgetId, selectedMonth ? `${selectedMonth}-01` : undefined);
   const profile = useProfile();
   const queryClient = useQueryClient();
   const { openExpense } = useAppActions();
@@ -39,6 +42,7 @@ export function BudgetDetailPage() {
   const [iconSelectedManually, setIconSelectedManually] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingBudget, setEditingBudget] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [formError, setFormError] = useState('');
   const mutation = useMutation({
     mutationFn: (input: CreateCategoryInput) => graphqlRequest(createCategoryMutation, { input }),
@@ -69,6 +73,9 @@ export function BudgetDetailPage() {
   if (!budget) return <ErrorState message="That budget does not exist or is unavailable." />;
   const locale = profile.data?.profile.locale ?? 'en-IN';
   const isArchived = budget.status === 'ARCHIVED';
+  const canEditCategories =
+    !isArchived &&
+    (budget.type === 'TEMPORARY' || budget.periodStart?.slice(0, 7) === todayIso().slice(0, 7));
 
   const submitCategory = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -119,9 +126,32 @@ export function BudgetDetailPage() {
           </div>
           <h1>{budget.name}</h1>
           <p>
-            {formatBudgetPeriod(budget.startDate, budget.endDate, budget.type, locale)} ·{' '}
-            {budget.currency}
+            {formatBudgetPeriod(
+              budget.type === 'MONTHLY'
+                ? (budget.periodStart ?? budget.startDate)
+                : budget.startDate,
+              budget.endDate,
+              budget.type,
+              locale,
+            )}{' '}
+            · {budget.currency}
           </p>
+          {budget.type === 'MONTHLY' && (
+            <label className="period-picker">
+              <span>View month</span>
+              <input
+                type="month"
+                min={budget.startDate.slice(0, 7)}
+                value={(budget.periodStart ?? budget.startDate).slice(0, 7)}
+                onChange={(event) => {
+                  const next = new URLSearchParams(searchParams);
+                  if (event.target.value) next.set('month', event.target.value);
+                  else next.delete('month');
+                  setSearchParams(next);
+                }}
+              />
+            </label>
+          )}
         </div>
         <div className="detail-header__actions">
           <button className="secondary-button" type="button" onClick={() => setEditingBudget(true)}>
@@ -141,6 +171,12 @@ export function BudgetDetailPage() {
         <div className="archived-budget-notice" role="status">
           This budget is archived and read-only. Its categories and expenses remain available for
           reference.
+        </div>
+      )}
+      {!isArchived && budget.type === 'MONTHLY' && !canEditCategories && (
+        <div className="archived-budget-notice" role="status">
+          This month is preserved as recorded. Switch to the current month to change category
+          limits; expenses in this month can still be corrected.
         </div>
       )}
 
@@ -178,7 +214,7 @@ export function BudgetDetailPage() {
               <p className="eyebrow">Allocation</p>
               <h2 id="categories-title">Categories</h2>
             </div>
-            {!isArchived && (
+            {canEditCategories && (
               <div className="category-actions">
                 <button
                   className="text-button"
@@ -201,7 +237,7 @@ export function BudgetDetailPage() {
               {(splitMutation.error as Error).message}
             </p>
           )}
-          {showCategoryForm && (
+          {showCategoryForm && canEditCategories && (
             <form className="inline-form" onSubmit={submitCategory}>
               <input
                 name="name"
@@ -329,7 +365,7 @@ export function BudgetDetailPage() {
                         category.overspent &&
                         `${formatMoney(category.overspent.minor, category.overspent.currency, locale)} over · ${Math.max(0, Math.round(category.progress ?? 100) - 100)}%`}
                     </span>
-                    {!isArchived && (
+                    {canEditCategories && (
                       <button
                         className="category-edit"
                         type="button"
@@ -355,7 +391,12 @@ export function BudgetDetailPage() {
           </div>
         </div>
         {budget.expenses?.length ? (
-          <ExpenseList expenses={budget.expenses} locale={locale} />
+          <ExpenseList
+            expenses={budget.expenses}
+            locale={locale}
+            editable={!isArchived}
+            onEdit={setEditingExpense}
+          />
         ) : (
           <EmptyState
             title="No expenses in this budget"
@@ -374,6 +415,9 @@ export function BudgetDetailPage() {
       )}
       {editingBudget && (
         <EditBudgetModal budget={budget} open onClose={() => setEditingBudget(false)} />
+      )}
+      {editingExpense && (
+        <AddExpenseModal open expense={editingExpense} onClose={() => setEditingExpense(null)} />
       )}
     </>
   );

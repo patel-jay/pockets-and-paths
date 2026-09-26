@@ -12,6 +12,7 @@ type TurnstileResponse = {
 
 export function registrationConfigured(env: Env): boolean {
   return Boolean(
+    env.REGISTRATION_ENABLED === 'true' &&
     env.AUTH_PEPPER &&
     env.REGISTRATION_INVITE_CODE &&
     env.TURNSTILE_SITE_KEY &&

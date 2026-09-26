@@ -53,6 +53,7 @@ export async function seedViewer(
   const timestamp = now.toISOString();
   const timeline = buildSeedTimeline(now);
   const monthlyBudgetId = crypto.randomUUID();
+  const monthlyPeriodId = crypto.randomUUID();
   const tripBudgetId = crypto.randomUUID();
   const monthlyCategories: SeedCategory[] = [
     {
@@ -191,6 +192,20 @@ export async function seedViewer(
       ),
     db
       .prepare(
+        `INSERT INTO budget_periods
+         (id, budget_id, viewer_id, period_start, amount_minor, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        monthlyPeriodId,
+        monthlyBudgetId,
+        viewerId,
+        timeline.monthlyStart,
+        12_000_000,
+        timestamp,
+      ),
+    db
+      .prepare(
         `INSERT INTO budgets (
           id, viewer_id, name, type, reporting_currency, amount_minor,
           profile_rate_micros, start_date, end_date, status, created_at
@@ -227,6 +242,14 @@ export async function seedViewer(
           timestamp,
         ),
     ),
+    ...monthlyCategories.map((category) =>
+      db
+        .prepare(
+          `INSERT INTO category_period_limits (period_id, category_id, limit_minor)
+           VALUES (?, ?, ?)`,
+        )
+        .bind(monthlyPeriodId, category.id, category.limit),
+    ),
     ...tripCategories.map((category) =>
       db
         .prepare(
@@ -252,8 +275,8 @@ export async function seedViewer(
           `INSERT INTO expenses (
             id, viewer_id, budget_id, category_id, title, amount_minor,
             currency, exchange_rate_micros, converted_amount_minor,
-            expense_date, notes, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
+            expense_date, notes, created_at, period_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
         )
         .bind(
           crypto.randomUUID(),
@@ -267,6 +290,7 @@ export async function seedViewer(
           expense.converted,
           expense.date,
           timestamp,
+          expense.budgetId === monthlyBudgetId ? monthlyPeriodId : null,
         ),
     ),
   ]);

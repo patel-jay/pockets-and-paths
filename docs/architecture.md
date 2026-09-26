@@ -14,10 +14,13 @@ Personal passwords are salted and hashed with PBKDF2-HMAC-SHA-256, then protecte
 
 - A profile defines display name, locale, and the default currency for new budgets.
 - A budget is either `MONTHLY` or `TEMPORARY` and owns one currency.
-- A temporary budget requires start and end dates; a monthly budget remains independent of temporary plans.
+- A temporary budget requires start and end dates. A monthly budget is a recurring template with
+  one immutable snapshot per used calendar month.
 - Date-based phases (`ACTIVE`, `UPCOMING`, and `ENDED`) are calculated from the plan dates. Archiving is a separate manual status that preserves a read-only history and can be reversed.
 - A category belongs to exactly one budget and may carry an allocation limit.
 - An expense belongs to exactly one budget and one of that budget’s categories.
+- A monthly expense date selects its budget period. Editing the date can move the expense to a
+  different month without changing either month’s other entries.
 - An expense stores integer minor units in its parent budget’s currency.
 
 ## Important boundaries
@@ -46,10 +49,17 @@ Migration `0002` adds the nullable category-limit representation alongside the o
 
 Migration `0003` enforces the one-currency-per-budget invariant for new and updated expenses. Earlier conversion columns remain only as additive-schema compatibility fields; current writes mirror the budget amount with a neutral rate, while GraphQL exposes one expense amount and no rate controls.
 
+Migration `0006` adds monthly budget periods, period-specific category-limit snapshots, and expense
+period references. Periods are created only when first used. Global expense browsing uses a
+date-and-ID cursor instead of an offset, so inserting a newer row does not shift later pages.
+
 ### Testing
 
-Vitest covers deterministic domain calculations, relative seed timelines, and password verification. Playwright API tests run against the real local Worker and D1 database to exercise invite-only registration, session restoration, demo/account boundaries, viewer-scoped queries, ownership checks, GraphQL mutations, and overspending. A separate browser test covers the main portfolio journey without letting Playwright collect the unit-test files.
+Vitest covers deterministic domain calculations, relative seed timelines, and password verification. Playwright API tests run against the real local Worker and D1 database to exercise invite-only registration, session restoration, demo/account boundaries, viewer-scoped queries, ownership checks, GraphQL mutations, and overspending. A separate browser test covers the primary demo journey without letting Playwright collect the unit-test files.
 
 ## Production evolution
 
-The next production steps would be verified-email delivery, password recovery or managed identity, multi-factor authentication, pagination, structured observability, and background synchronization for queued offline expenses. Cross-currency spending would require an explicit product design before adding a rate provider.
+The next production steps would be verified-email delivery, password recovery or managed identity,
+multi-factor authentication, structured observability, and background synchronization for queued
+offline expenses. Cross-currency spending would require an explicit product design before adding a
+rate provider.
