@@ -4,13 +4,16 @@ import {
   createBudget,
   createCategory,
   createExpense,
+  createRefund,
   deleteExpense,
+  deleteRefund,
   getBudget,
   getBudgets,
   getCategories,
   getExpenses,
   getExpensePage,
   getProfile,
+  getRefunds,
   getYearAnalysis,
   summarizeBalancesByCurrency,
   previewExpenseImpact,
@@ -20,9 +23,11 @@ import {
   updateBudget,
   updateProfile,
   updateExpense,
+  updateRefund,
 } from '../data';
 import type {
   AddExpenseInput,
+  CreateRefundInput,
   CreateBudgetInput,
   CreateCategoryInput,
   ExpenseImpactInput,
@@ -33,8 +38,16 @@ import type {
   UpdateBudgetInput,
   UpdateProfileInput,
   UpdateExpenseInput,
+  UpdateRefundInput,
 } from '../types';
-import { mapBudget, mapCategory, mapExpense, mapMoney, mapYearAnalysis } from './mappers';
+import {
+  mapBudget,
+  mapCategory,
+  mapExpense,
+  mapMoney,
+  mapRefund,
+  mapYearAnalysis,
+} from './mappers';
 import { typeDefs } from './type-defs';
 
 export const schema = createSchema<RequestContext>({
@@ -146,6 +159,10 @@ export const schema = createSchema<RequestContext>({
         return expenses.map(mapExpense);
       },
     },
+    Expense: {
+      refunds: async (expense: { id: string }, _args, context) =>
+        (await getRefunds(context.env.DB, context.viewerId, expense.id)).map(mapRefund),
+    },
     Mutation: {
       createBudget: async (_root, args: { input: CreateBudgetInput }, context) =>
         mapBudget(await createBudget(context.env.DB, context.viewerId, args.input)),
@@ -175,6 +192,12 @@ export const schema = createSchema<RequestContext>({
         mapExpense(await updateExpense(context.env.DB, context.viewerId, args.input)),
       deleteExpense: async (_root, args: { id: string }, context) =>
         deleteExpense(context.env.DB, context.viewerId, args.id),
+      createRefund: async (_root, args: { input: CreateRefundInput }, context) =>
+        mapRefund(await createRefund(context.env.DB, context.viewerId, args.input)),
+      updateRefund: async (_root, args: { input: UpdateRefundInput }, context) =>
+        mapRefund(await updateRefund(context.env.DB, context.viewerId, args.input)),
+      deleteRefund: async (_root, args: { id: string }, context) =>
+        deleteRefund(context.env.DB, context.viewerId, args.id),
       previewExpense: async (_root, args: { input: ExpenseImpactInput }, context) => {
         const impact = await previewExpenseImpact(context.env.DB, context.viewerId, args.input);
         return {

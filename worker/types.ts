@@ -18,6 +18,7 @@ export interface RequestContext {
 
 export type BudgetType = 'MONTHLY' | 'TEMPORARY';
 export type BudgetStatus = 'ACTIVE' | 'ARCHIVED';
+export type RefundKind = 'FULL' | 'PARTIAL';
 
 export interface CreateBudgetInput {
   name: string;
@@ -69,6 +70,21 @@ export interface UpdateExpenseInput extends AddExpenseInput {
   expenseId: string;
 }
 
+export interface CreateRefundInput {
+  expenseId: string;
+  kind: RefundKind;
+  amountMinor?: string | null;
+  refundDate: string;
+  notes?: string | null;
+}
+
+export interface UpdateRefundInput {
+  refundId: string;
+  amountMinor: string;
+  refundDate: string;
+  notes?: string | null;
+}
+
 export interface ExpenseFilterInput {
   budgetId?: string | null;
   categoryId?: string | null;
@@ -108,6 +124,8 @@ export interface BudgetRow {
   period_id?: string | null;
   period_start?: string | null;
   period_amount_minor?: number | null;
+  gross_spent_minor?: number;
+  refunded_minor?: number;
 }
 
 export interface CategoryRow {
@@ -122,6 +140,7 @@ export interface CategoryRow {
   created_at: string;
   period_id: string | null;
   spent_minor?: number;
+  refunded_minor?: number;
 }
 
 export interface ExpenseRow {
@@ -144,6 +163,22 @@ export interface ExpenseRow {
   category_color?: string;
   category_icon?: CategoryIconKey;
   period_start?: string | null;
+  refunded_minor?: number;
+}
+
+export interface RefundRow {
+  id: string;
+  viewer_id: string;
+  expense_id: string;
+  amount_minor: number;
+  refund_date: string;
+  notes: string | null;
+  created_at: string;
+  expense_date?: string;
+  expense_title?: string;
+  budget_id?: string;
+  budget_status?: BudgetStatus;
+  budget_currency?: string;
 }
 
 export interface ExpenseImpact {
@@ -198,6 +233,8 @@ export interface YearTripAnalysis {
   endDate: string | null;
   status: BudgetStatus;
   plannedMinor: number;
+  grossSpentMinor: number;
+  refundedMinor: number;
   spentMinor: number;
   remainingMinor: number;
   overspentMinor: number;

@@ -15,6 +15,16 @@ export const typeDefs = /* GraphQL */ `
     ENDED
   }
 
+  enum RefundKind {
+    FULL
+    PARTIAL
+  }
+
+  enum RefundStatus {
+    PARTIAL
+    FULL
+  }
+
   type Money {
     minor: String!
     currency: String!
@@ -33,6 +43,7 @@ export const typeDefs = /* GraphQL */ `
     hasLimit: Boolean!
     limit: Money
     spent: Money!
+    refunded: Money!
     remaining: Money
     overspent: Money
     progress: Float
@@ -47,6 +58,8 @@ export const typeDefs = /* GraphQL */ `
     currency: String!
     amount: Money!
     spent: Money!
+    grossSpent: Money!
+    refunded: Money!
     remaining: Money!
     overspent: Money!
     isOverBudget: Boolean!
@@ -67,6 +80,10 @@ export const typeDefs = /* GraphQL */ `
     id: ID!
     title: String!
     amount: Money!
+    refundedAmount: Money!
+    netAmount: Money!
+    refundStatus: RefundStatus
+    refunds: [Refund!]!
     expenseDate: String!
     notes: String
     budgetId: ID!
@@ -77,6 +94,13 @@ export const typeDefs = /* GraphQL */ `
     categoryColor: String!
     categoryIcon: String!
     periodStart: String
+  }
+
+  type Refund {
+    id: ID!
+    amount: Money!
+    refundDate: String!
+    notes: String
   }
 
   type ExpensePage {
@@ -133,6 +157,8 @@ export const typeDefs = /* GraphQL */ `
     endDate: String
     status: BudgetStatus!
     planned: Money!
+    grossSpent: Money!
+    refunded: Money!
     spent: Money!
     remaining: Money!
     overspent: Money!
@@ -200,6 +226,21 @@ export const typeDefs = /* GraphQL */ `
     notes: String
   }
 
+  input CreateRefundInput {
+    expenseId: ID!
+    kind: RefundKind!
+    amountMinor: String
+    refundDate: String!
+    notes: String
+  }
+
+  input UpdateRefundInput {
+    refundId: ID!
+    amountMinor: String!
+    refundDate: String!
+    notes: String
+  }
+
   input ExpenseImpactInput {
     budgetId: ID!
     categoryId: ID!
@@ -254,6 +295,9 @@ export const typeDefs = /* GraphQL */ `
     addExpense(input: AddExpenseInput!): Expense!
     updateExpense(input: UpdateExpenseInput!): Expense!
     deleteExpense(id: ID!): Boolean!
+    createRefund(input: CreateRefundInput!): Refund!
+    updateRefund(input: UpdateRefundInput!): Refund!
+    deleteRefund(id: ID!): Boolean!
     previewExpense(input: ExpenseImpactInput!): ExpenseImpact!
     updateProfile(input: UpdateProfileInput!): Profile!
   }

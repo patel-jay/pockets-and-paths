@@ -19,12 +19,16 @@ Personal passwords are salted and hashed with PBKDF2-HMAC-SHA-256, then protecte
 - Date-based phases (`ACTIVE`, `UPCOMING`, and `ENDED`) are calculated from the plan dates. Archiving is a separate manual status that preserves a read-only history and can be reversed.
 - A category belongs to exactly one budget and may carry an allocation limit.
 - An expense belongs to exactly one budget and one of that budget’s categories.
+- A refund belongs to exactly one original expense. It inherits that expense’s budget, category,
+  and reporting currency rather than duplicating those choices.
 - A monthly expense date selects its budget period. Editing the date can move the expense to a
   different month without changing either month’s other entries. Monthly period snapshots are
   materialized through the calendar year so zero-spend months keep their planned values.
 - A temporary-budget expense may be dated before or after the trip itself, allowing advance
   bookings and later settlements to remain part of the complete trip ledger.
 - An expense stores integer minor units in its parent budget’s currency.
+- Budget and category progress use expenses minus linked refunds. Calendar cash-flow analysis uses
+  the expense payment date and the refund received date independently.
 
 ## Important boundaries
 
@@ -44,7 +48,10 @@ Categories without limits have no progress, remaining, or overspent values. They
 
 ### Storage
 
-Database access is divided by domain under `worker/data/`: profiles, budgets, categories, expenses, summaries, validation, and demo seeding. GraphQL type definitions, mapping, and resolvers live separately under `worker/graphql/`. Moving to PostgreSQL would replace the data modules and migrations while leaving the client operations and most resolver behavior unchanged.
+Database access is divided by domain under `worker/data/`: profiles, budgets, categories, expenses,
+refunds, summaries, validation, and demo seeding. GraphQL type definitions, mapping, and resolvers
+live separately under `worker/graphql/`. Moving to PostgreSQL would replace the data modules and
+migrations while leaving the client operations and most resolver behavior unchanged.
 
 Checked-in SQL migrations are the schema source of truth. Local development applies pending migrations before Vite starts; the Worker does not duplicate schema creation during request handling.
 
@@ -58,9 +65,14 @@ calendar year and snapshots their category limits. Runtime materialization repea
 new plans and new years. Global expense browsing uses a date-and-ID cursor instead of an offset, so
 inserting a newer row does not shift later pages.
 
+Migration `0008` adds received refunds as child records of expenses. Aggregate reads subtract them
+from budget and category spending, while explicit application checks prevent over-refunding and
+protect an expense until its refunds are removed.
+
 Yearly analysis is assembled in `worker/data/analysis.ts`. Monthly-plan totals, trip cash flow, and
-category spending are grouped by reporting currency. The calendar view follows expense dates,
-while the trip view selects trips by start year and totals their complete ledgers. This separation
+category spending are grouped by reporting currency. The calendar view follows expense dates and
+refund received dates, while the trip view selects trips by start year and totals their complete
+ledgers. This separation
 avoids comparing a multi-year trip budget with only one year of its spending.
 
 ### Testing

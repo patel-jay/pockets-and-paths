@@ -19,6 +19,9 @@ export const categoryFragment = /* GraphQL */ `
     spent {
       ...MoneyFields
     }
+    refunded {
+      ...MoneyFields
+    }
     remaining {
       ...MoneyFields
     }
@@ -44,6 +47,12 @@ export const budgetFragment = /* GraphQL */ `
       ...MoneyFields
     }
     spent {
+      ...MoneyFields
+    }
+    grossSpent {
+      ...MoneyFields
+    }
+    refunded {
       ...MoneyFields
     }
     remaining {
@@ -84,6 +93,21 @@ export const expenseFragment = /* GraphQL */ `
     periodStart
     amount {
       ...MoneyFields
+    }
+    refundedAmount {
+      ...MoneyFields
+    }
+    netAmount {
+      ...MoneyFields
+    }
+    refundStatus
+    refunds {
+      id
+      amount {
+        ...MoneyFields
+      }
+      refundDate
+      notes
     }
   }
 `;

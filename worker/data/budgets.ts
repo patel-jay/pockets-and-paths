@@ -25,7 +25,15 @@ export async function getBudgets(
     .prepare(
       `SELECT b.*, p.id AS period_id, p.period_start,
               p.amount_minor AS period_amount_minor,
-              COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor,
+              COALESCE(SUM(e.converted_amount_minor), 0) AS gross_spent_minor,
+              COALESCE(SUM(COALESCE((
+                SELECT SUM(r.amount_minor) FROM refunds r
+                WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+              ), 0)), 0) AS refunded_minor,
+              COALESCE(SUM(e.converted_amount_minor - COALESCE((
+                SELECT SUM(r.amount_minor) FROM refunds r
+                WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+              ), 0)), 0) AS spent_minor,
               CASE
                 WHEN b.type = 'MONTHLY' AND p.id IS NOT NULL THEN
                   COALESCE((SELECT SUM(cpl.limit_minor) FROM category_period_limits cpl WHERE cpl.period_id = p.id), 0)
@@ -58,7 +66,15 @@ export async function getBudget(
     .prepare(
       `SELECT b.*, p.id AS period_id, p.period_start,
               p.amount_minor AS period_amount_minor,
-              COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor,
+              COALESCE(SUM(e.converted_amount_minor), 0) AS gross_spent_minor,
+              COALESCE(SUM(COALESCE((
+                SELECT SUM(r.amount_minor) FROM refunds r
+                WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+              ), 0)), 0) AS refunded_minor,
+              COALESCE(SUM(e.converted_amount_minor - COALESCE((
+                SELECT SUM(r.amount_minor) FROM refunds r
+                WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+              ), 0)), 0) AS spent_minor,
               CASE
                 WHEN b.type = 'MONTHLY' AND p.id IS NOT NULL THEN
                   COALESCE((SELECT SUM(cpl.limit_minor) FROM category_period_limits cpl WHERE cpl.period_id = p.id), 0)

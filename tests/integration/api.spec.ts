@@ -969,3 +969,316 @@ test('builds yearly monthly and trip analysis without losing advance bookings', 
     await api.dispose();
   }
 });
+
+test('records, edits, and removes partial and full refunds safely', async ({ playwright }) => {
+  const api = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:4173' });
+
+  try {
+    await login(api);
+    await reset(api);
+
+    const created = await graphql<{
+      createBudget: { id: string; categories: { id: string }[] };
+    }>(
+      api,
+      `
+        mutation CreateRefundBudget($input: CreateBudgetInput!) {
+          createBudget(input: $input) {
+            id
+            categories {
+              id
+            }
+          }
+        }
+      `,
+      {
+        input: {
+          name: `Refund test ${crypto.randomUUID()}`,
+          type: 'MONTHLY',
+          currency: 'USD',
+          amountMinor: '100000',
+          startDate: '2025-01-01',
+          endDate: null,
+        },
+      },
+    );
+    expect(created.errors).toBeUndefined();
+    const budgetId = created.data!.createBudget.id;
+    const categoryId = created.data!.createBudget.categories[0].id;
+
+    const expense = await graphql<{ addExpense: { id: string } }>(
+      api,
+      `
+        mutation AddRefundedExpense($input: AddExpenseInput!) {
+          addExpense(input: $input) {
+            id
+          }
+        }
+      `,
+      {
+        input: {
+          budgetId,
+          categoryId,
+          title: 'Cancelled flight',
+          amountMinor: '10000',
+          expenseDate: '2025-12-20',
+          notes: null,
+        },
+      },
+    );
+    const expenseId = expense.data!.addExpense.id;
+
+    const partial = await graphql<{ createRefund: { id: string; amount: { minor: string } } }>(
+      api,
+      `
+        mutation AddPartialRefund($input: CreateRefundInput!) {
+          createRefund(input: $input) {
+            id
+            amount {
+              minor
+            }
+          }
+        }
+      `,
+      {
+        input: {
+          expenseId,
+          kind: 'PARTIAL',
+          amountMinor: '3000',
+          refundDate: '2026-01-15',
+          notes: 'First airline credit',
+        },
+      },
+    );
+    expect(partial.errors).toBeUndefined();
+    expect(partial.data?.createRefund.amount.minor).toBe('3000');
+    const partialRefundId = partial.data!.createRefund.id;
+
+    const edited = await graphql<{ updateRefund: { amount: { minor: string } } }>(
+      api,
+      `
+        mutation EditPartialRefund($input: UpdateRefundInput!) {
+          updateRefund(input: $input) {
+            amount {
+              minor
+            }
+          }
+        }
+      `,
+      {
+        input: {
+          refundId: partialRefundId,
+          amountMinor: '2500',
+          refundDate: '2026-01-16',
+          notes: 'Corrected amount',
+        },
+      },
+    );
+    expect(edited.data?.updateRefund.amount.minor).toBe('2500');
+
+    const full = await graphql<{ createRefund: { id: string; amount: { minor: string } } }>(
+      api,
+      `
+        mutation AddRemainingRefund($input: CreateRefundInput!) {
+          createRefund(input: $input) {
+            id
+            amount {
+              minor
+            }
+          }
+        }
+      `,
+      {
+        input: {
+          expenseId,
+          kind: 'FULL',
+          amountMinor: null,
+          refundDate: '2026-02-02',
+          notes: null,
+        },
+      },
+    );
+    expect(full.errors).toBeUndefined();
+    expect(full.data?.createRefund.amount.minor).toBe('7500');
+    const fullRefundId = full.data!.createRefund.id;
+
+    const state = await graphql<{
+      expenses: {
+        id: string;
+        refundStatus: string | null;
+        refundedAmount: { minor: string };
+        netAmount: { minor: string };
+        refunds: { id: string; amount: { minor: string }; refundDate: string }[];
+      }[];
+      budget: {
+        grossSpent: { minor: string };
+        refunded: { minor: string };
+        spent: { minor: string };
+      };
+    }>(
+      api,
+      `
+        query RefundState($budgetId: ID!) {
+          expenses(budgetId: $budgetId) {
+            id
+            refundStatus
+            refundedAmount {
+              minor
+            }
+            netAmount {
+              minor
+            }
+            refunds {
+              id
+              amount {
+                minor
+              }
+              refundDate
+            }
+          }
+          budget(id: $budgetId, periodStart: "2025-12-01") {
+            grossSpent {
+              minor
+            }
+            refunded {
+              minor
+            }
+            spent {
+              minor
+            }
+          }
+        }
+      `,
+      { budgetId },
+    );
+    const refundedExpense = state.data!.expenses.find((item) => item.id === expenseId)!;
+    expect(refundedExpense).toMatchObject({
+      refundStatus: 'FULL',
+      refundedAmount: { minor: '10000' },
+      netAmount: { minor: '0' },
+    });
+    expect(refundedExpense.refunds).toHaveLength(2);
+    expect(state.data?.budget).toEqual({
+      grossSpent: { minor: '10000' },
+      refunded: { minor: '10000' },
+      spent: { minor: '0' },
+    });
+
+    const jsonExport = await api.get('/api/export?format=json');
+    expect(jsonExport.ok()).toBe(true);
+    await expect(jsonExport.json()).resolves.toMatchObject({
+      formatVersion: 2,
+      refunds: expect.arrayContaining([
+        expect.objectContaining({ expense_id: expenseId, amount_minor: 2500 }),
+        expect.objectContaining({ expense_id: expenseId, amount_minor: 7500 }),
+      ]),
+    });
+    const csvExport = await api.get('/api/export?format=csv');
+    expect(csvExport.ok()).toBe(true);
+    const csv = await csvExport.text();
+    expect(csv).toContain('transaction_type,transaction_date');
+    expect(csv).toContain('"REFUND"');
+    expect(csv).toContain('"Refund · Cancelled flight"');
+
+    const extraRefund = await graphql(
+      api,
+      `
+        mutation AddExcessRefund($input: CreateRefundInput!) {
+          createRefund(input: $input) {
+            id
+          }
+        }
+      `,
+      {
+        input: {
+          expenseId,
+          kind: 'PARTIAL',
+          amountMinor: '1',
+          refundDate: '2026-02-03',
+          notes: null,
+        },
+      },
+    );
+    expect(extraRefund.errors?.[0]?.message).toContain('fully refunded');
+
+    const deleteOriginal = await graphql(
+      api,
+      'mutation DeleteRefundedExpense($id: ID!) { deleteExpense(id: $id) }',
+      { id: expenseId },
+    );
+    expect(deleteOriginal.errors?.[0]?.message).toContain('Delete the recorded refunds');
+
+    const cashFlow = await graphql<{
+      originalYear: { currencies: { currency: string; monthlySpent: { minor: string } }[] };
+      refundYear: { currencies: { currency: string; monthlySpent: { minor: string } }[] };
+    }>(
+      api,
+      `
+        query RefundCashFlow {
+          originalYear: yearAnalysis(year: 2025) {
+            currencies {
+              currency
+              monthlySpent {
+                minor
+              }
+            }
+          }
+          refundYear: yearAnalysis(year: 2026) {
+            currencies {
+              currency
+              monthlySpent {
+                minor
+              }
+            }
+          }
+        }
+      `,
+    );
+    expect(
+      cashFlow.data?.originalYear.currencies.find((item) => item.currency === 'USD')?.monthlySpent
+        .minor,
+    ).toBe('10000');
+    expect(
+      cashFlow.data?.refundYear.currencies.find((item) => item.currency === 'USD')?.monthlySpent
+        .minor,
+    ).toBe('-10000');
+
+    const removedFull = await graphql<{ deleteRefund: boolean }>(
+      api,
+      'mutation DeleteFullRefund($id: ID!) { deleteRefund(id: $id) }',
+      { id: fullRefundId },
+    );
+    expect(removedFull.data?.deleteRefund).toBe(true);
+
+    const partialState = await graphql<{
+      expenses: { id: string; refundStatus: string | null; netAmount: { minor: string } }[];
+    }>(
+      api,
+      `
+        query PartialRefundState($budgetId: ID!) {
+          expenses(budgetId: $budgetId) {
+            id
+            refundStatus
+            netAmount {
+              minor
+            }
+          }
+        }
+      `,
+      { budgetId },
+    );
+    expect(partialState.data?.expenses.find((item) => item.id === expenseId)).toMatchObject({
+      refundStatus: 'PARTIAL',
+      netAmount: { minor: '7500' },
+    });
+
+    const removedPartial = await graphql<{ deleteRefund: boolean }>(
+      api,
+      'mutation DeletePartialRefund($id: ID!) { deleteRefund(id: $id) }',
+      { id: partialRefundId },
+    );
+    expect(removedPartial.data?.deleteRefund).toBe(true);
+  } finally {
+    await api.dispose();
+  }
+});

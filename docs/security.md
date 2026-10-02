@@ -16,6 +16,8 @@ This document describes the MVP’s trust boundaries; it is not a claim of produ
 - SQL uses prepared statements rather than interpolated user input.
 - Every database operation is scoped to the current viewer.
 - Category ownership is checked before an expense is inserted.
+- Refund ownership is inherited from the original expense, and aggregate validation prevents the
+  recorded refunds from exceeding that expense.
 - Expense currency is derived from its parent budget, and a database trigger rejects inconsistent writes.
 - Money, dates, supported currencies, text length, and budget type are validated server-side.
 - GraphQL introspection UI is disabled. Expected domain errors keep safe messages and error codes; unexpected resolver details are masked.

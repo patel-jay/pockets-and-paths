@@ -26,6 +26,8 @@ interface TripRow {
   end_date: string | null;
   status: BudgetStatus;
   amount_minor: number;
+  gross_spent_minor: number;
+  refunded_minor: number;
   spent_minor: number;
   cash_flow_in_year_minor: number;
 }
@@ -101,6 +103,8 @@ export async function getYearAnalysis(
              UNION
              SELECT substr(expense_date, 1, 4) FROM expenses WHERE viewer_id = ?
              UNION
+             SELECT substr(refund_date, 1, 4) FROM refunds WHERE viewer_id = ?
+             UNION
              SELECT substr(start_date, 1, 4) FROM budgets WHERE viewer_id = ?
              UNION
              SELECT ?
@@ -110,7 +114,7 @@ export async function getYearAnalysis(
            WHERE year GLOB '[0-9][0-9][0-9][0-9]'
            ORDER BY year DESC`,
         )
-        .bind(viewerId, viewerId, viewerId, String(currentYear))
+        .bind(viewerId, viewerId, viewerId, viewerId, String(currentYear))
         .all<{ year: number }>(),
       db
         .prepare(
@@ -126,63 +130,117 @@ export async function getYearAnalysis(
         .all<AmountRow>(),
       db
         .prepare(
-          `SELECT substr(e.expense_date, 1, 7) AS month,
-                  b.reporting_currency AS currency,
-                  SUM(e.converted_amount_minor) AS amount_minor
-           FROM expenses e
-           JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = e.viewer_id
-           WHERE e.viewer_id = ? AND b.type = 'MONTHLY'
-             AND e.expense_date >= ? AND e.expense_date < ?
+          `WITH transactions AS (
+             SELECT e.expense_date AS transaction_date,
+                    b.reporting_currency AS currency,
+                    e.converted_amount_minor AS amount_minor
+             FROM expenses e
+             JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = e.viewer_id
+             WHERE e.viewer_id = ? AND b.type = 'MONTHLY'
+             UNION ALL
+             SELECT r.refund_date, b.reporting_currency, -r.amount_minor
+             FROM refunds r
+             JOIN expenses e ON e.id = r.expense_id AND e.viewer_id = r.viewer_id
+             JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = r.viewer_id
+             WHERE r.viewer_id = ? AND b.type = 'MONTHLY'
+           )
+           SELECT substr(transaction_date, 1, 7) AS month,
+                  currency, SUM(amount_minor) AS amount_minor
+           FROM transactions
+           WHERE transaction_date >= ? AND transaction_date < ?
            GROUP BY month, currency`,
         )
-        .bind(viewerId, rangeStart, rangeEnd)
+        .bind(viewerId, viewerId, rangeStart, rangeEnd)
         .all<AmountRow>(),
       db
         .prepare(
-          `SELECT substr(e.expense_date, 1, 7) AS month,
-                  b.reporting_currency AS currency,
-                  SUM(e.converted_amount_minor) AS amount_minor
-           FROM expenses e
-           JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = e.viewer_id
-           WHERE e.viewer_id = ? AND b.type = 'TEMPORARY'
-             AND e.expense_date >= ? AND e.expense_date < ?
+          `WITH transactions AS (
+             SELECT e.expense_date AS transaction_date,
+                    b.reporting_currency AS currency,
+                    e.converted_amount_minor AS amount_minor
+             FROM expenses e
+             JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = e.viewer_id
+             WHERE e.viewer_id = ? AND b.type = 'TEMPORARY'
+             UNION ALL
+             SELECT r.refund_date, b.reporting_currency, -r.amount_minor
+             FROM refunds r
+             JOIN expenses e ON e.id = r.expense_id AND e.viewer_id = r.viewer_id
+             JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = r.viewer_id
+             WHERE r.viewer_id = ? AND b.type = 'TEMPORARY'
+           )
+           SELECT substr(transaction_date, 1, 7) AS month,
+                  currency, SUM(amount_minor) AS amount_minor
+           FROM transactions
+           WHERE transaction_date >= ? AND transaction_date < ?
            GROUP BY month, currency`,
         )
-        .bind(viewerId, rangeStart, rangeEnd)
+        .bind(viewerId, viewerId, rangeStart, rangeEnd)
         .all<AmountRow>(),
       db
         .prepare(
-          `SELECT substr(e.expense_date, 1, 7) AS month,
-                  b.reporting_currency AS currency,
-                  c.name,
-                  SUM(e.converted_amount_minor) AS amount_minor
-           FROM expenses e
-           JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = e.viewer_id
-           JOIN categories c ON c.id = e.category_id AND c.viewer_id = e.viewer_id
-           WHERE e.viewer_id = ? AND e.expense_date >= ? AND e.expense_date < ?
-           GROUP BY month, currency, c.name
+          `WITH transactions AS (
+             SELECT e.expense_date AS transaction_date,
+                    b.reporting_currency AS currency,
+                    c.name,
+                    e.converted_amount_minor AS amount_minor
+             FROM expenses e
+             JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = e.viewer_id
+             JOIN categories c ON c.id = e.category_id AND c.viewer_id = e.viewer_id
+             WHERE e.viewer_id = ?
+             UNION ALL
+             SELECT r.refund_date, b.reporting_currency, c.name, -r.amount_minor
+             FROM refunds r
+             JOIN expenses e ON e.id = r.expense_id AND e.viewer_id = r.viewer_id
+             JOIN budgets b ON b.id = e.budget_id AND b.viewer_id = r.viewer_id
+             JOIN categories c ON c.id = e.category_id AND c.viewer_id = r.viewer_id
+             WHERE r.viewer_id = ?
+           )
+           SELECT substr(transaction_date, 1, 7) AS month,
+                  currency, name, SUM(amount_minor) AS amount_minor
+           FROM transactions
+           WHERE transaction_date >= ? AND transaction_date < ?
+           GROUP BY month, currency, name
            ORDER BY amount_minor DESC`,
         )
-        .bind(viewerId, rangeStart, rangeEnd)
+        .bind(viewerId, viewerId, rangeStart, rangeEnd)
         .all<CategoryAmountRow>(),
       db
         .prepare(
           `SELECT b.id, b.name, b.reporting_currency, b.start_date, b.end_date,
                   b.status, b.amount_minor,
-                  COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor,
-                  COALESCE(SUM(
-                    CASE WHEN e.expense_date >= ? AND e.expense_date < ?
-                      THEN e.converted_amount_minor ELSE 0 END
+                  COALESCE((
+                    SELECT SUM(e.converted_amount_minor) FROM expenses e
+                    WHERE e.budget_id = b.id AND e.viewer_id = b.viewer_id
+                  ), 0) AS gross_spent_minor,
+                  COALESCE((
+                    SELECT SUM(r.amount_minor) FROM refunds r
+                    JOIN expenses e ON e.id = r.expense_id AND e.viewer_id = r.viewer_id
+                    WHERE e.budget_id = b.id AND r.viewer_id = b.viewer_id
+                  ), 0) AS refunded_minor,
+                  COALESCE((
+                    SELECT SUM(e.converted_amount_minor) FROM expenses e
+                    WHERE e.budget_id = b.id AND e.viewer_id = b.viewer_id
+                  ), 0) - COALESCE((
+                    SELECT SUM(r.amount_minor) FROM refunds r
+                    JOIN expenses e ON e.id = r.expense_id AND e.viewer_id = r.viewer_id
+                    WHERE e.budget_id = b.id AND r.viewer_id = b.viewer_id
+                  ), 0) AS spent_minor,
+                  COALESCE((
+                    SELECT SUM(e.converted_amount_minor) FROM expenses e
+                    WHERE e.budget_id = b.id AND e.viewer_id = b.viewer_id
+                      AND e.expense_date >= ? AND e.expense_date < ?
+                  ), 0) - COALESCE((
+                    SELECT SUM(r.amount_minor) FROM refunds r
+                    JOIN expenses e ON e.id = r.expense_id AND e.viewer_id = r.viewer_id
+                    WHERE e.budget_id = b.id AND r.viewer_id = b.viewer_id
+                      AND r.refund_date >= ? AND r.refund_date < ?
                   ), 0) AS cash_flow_in_year_minor
            FROM budgets b
-           LEFT JOIN expenses e
-             ON e.budget_id = b.id AND e.viewer_id = b.viewer_id
            WHERE b.viewer_id = ? AND b.type = 'TEMPORARY'
              AND b.start_date >= ? AND b.start_date < ?
-           GROUP BY b.id
            ORDER BY b.start_date ASC, b.name ASC`,
         )
-        .bind(rangeStart, rangeEnd, viewerId, rangeStart, `${year + 1}-01-01`)
+        .bind(rangeStart, rangeEnd, rangeStart, rangeEnd, viewerId, rangeStart, `${year + 1}-01-01`)
         .all<TripRow>(),
     ]);
 
@@ -221,6 +279,8 @@ export async function getYearAnalysis(
 
   const trips: YearTripAnalysis[] = tripBudgetRows.results.map((trip) => {
     const plannedMinor = Number(trip.amount_minor);
+    const grossSpentMinor = Number(trip.gross_spent_minor);
+    const refundedMinor = Number(trip.refunded_minor);
     const spentMinor = Number(trip.spent_minor);
     getCurrency(trip.reporting_currency);
     return {
@@ -231,6 +291,8 @@ export async function getYearAnalysis(
       endDate: trip.end_date,
       status: trip.status,
       plannedMinor,
+      grossSpentMinor,
+      refundedMinor,
       spentMinor,
       remainingMinor: Math.max(plannedMinor - spentMinor, 0),
       overspentMinor: Math.max(spentMinor - plannedMinor, 0),
@@ -241,14 +303,19 @@ export async function getYearAnalysis(
   for (const analysis of currencies.values()) {
     for (const month of analysis.months) {
       month.totalSpentMinor = month.monthlySpentMinor + month.tripSpentMinor;
+      month.categories = month.categories.filter((category) => category.spentMinor > 0);
       month.categories.sort((a, b) => b.spentMinor - a.spentMinor || a.name.localeCompare(b.name));
       analysis.plannedMinor += month.plannedMinor;
       analysis.monthlySpentMinor += month.monthlySpentMinor;
       analysis.tripSpentMinor += month.tripSpentMinor;
       analysis.totalSpentMinor += month.totalSpentMinor;
     }
-    analysis.remainingMinor = Math.max(analysis.plannedMinor - analysis.monthlySpentMinor, 0);
+    analysis.remainingMinor = Math.max(
+      analysis.plannedMinor - Math.max(analysis.monthlySpentMinor, 0),
+      0,
+    );
     analysis.overspentMinor = Math.max(analysis.monthlySpentMinor - analysis.plannedMinor, 0);
+    analysis.categories = analysis.categories.filter((category) => category.spentMinor > 0);
     analysis.categories.sort((a, b) => b.spentMinor - a.spentMinor || a.name.localeCompare(b.name));
   }
 

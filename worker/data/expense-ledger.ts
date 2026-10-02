@@ -17,6 +17,10 @@ import { optionalText, requireIsoDate, requirePositiveMinor, requireText } from 
 const expenseSelect = `SELECT e.*, b.name AS budget_name,
   b.reporting_currency AS budget_currency, b.status AS budget_status, c.name AS category_name,
   c.color AS category_color, c.icon_key AS category_icon,
+  COALESCE((
+    SELECT SUM(r.amount_minor) FROM refunds r
+    WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+  ), 0) AS refunded_minor,
   p.period_start
   FROM expenses e
   INNER JOIN budgets b ON b.id = e.budget_id
@@ -199,22 +203,32 @@ export async function previewExpenseImpact(
 
   let budgetSpentMinor = budget.spent_minor ?? 0;
   let categorySpentMinor = category.spent_minor ?? 0;
+  const amountMinor = requirePositiveMinor(input.amountMinor, 'Expense amount');
+  let retainedRefundMinor = 0;
   if (input.excludeExpenseId) {
     const existing = await getExpense(db, viewerId, input.excludeExpenseId);
     if (!existing) throw new DomainError('Expense was not found.', 'NOT_FOUND');
+    if (existing.budget_id !== input.budgetId) {
+      throw new DomainError('An expense cannot be moved to another budget.');
+    }
+    retainedRefundMinor = existing.refunded_minor ?? 0;
+    if (amountMinor < retainedRefundMinor) {
+      throw new DomainError('The expense amount cannot be lower than its recorded refunds.');
+    }
     const samePeriod =
       budget.type === 'TEMPORARY' || existing.period_start === monthStart(expenseDate);
-    if (existing.budget_id === input.budgetId && samePeriod) {
-      budgetSpentMinor -= existing.converted_amount_minor;
+    if (samePeriod) {
+      const existingNetMinor = existing.converted_amount_minor - retainedRefundMinor;
+      budgetSpentMinor -= existingNetMinor;
       if (existing.category_id === input.categoryId) {
-        categorySpentMinor -= existing.converted_amount_minor;
+        categorySpentMinor -= existingNetMinor;
       }
     }
   }
 
-  const amountMinor = requirePositiveMinor(input.amountMinor, 'Expense amount');
-  const budgetProjectedSpentMinor = budgetSpentMinor + amountMinor;
-  const categoryProjectedSpentMinor = categorySpentMinor + amountMinor;
+  const newNetMinor = amountMinor - retainedRefundMinor;
+  const budgetProjectedSpentMinor = budgetSpentMinor + newNetMinor;
+  const categoryProjectedSpentMinor = categorySpentMinor + newNetMinor;
   const budgetAmountMinor = budget.period_amount_minor ?? budget.amount_minor;
   const budgetPosition = spendingPosition(budgetProjectedSpentMinor, budgetAmountMinor);
   const categoryPosition = optionalSpendingPosition(
@@ -298,6 +312,18 @@ export async function updateExpense(
   if (!existingBudget) throw new DomainError('Budget was not found.', 'NOT_FOUND');
   requireActiveBudget(existingBudget);
   const normalized = normalizedExpenseInput(input);
+  if (normalized.amountMinor < (existing.refunded_minor ?? 0)) {
+    throw new DomainError('The expense amount cannot be lower than its recorded refunds.');
+  }
+  const firstRefund = await db
+    .prepare(
+      'SELECT MIN(refund_date) AS refund_date FROM refunds WHERE expense_id = ? AND viewer_id = ?',
+    )
+    .bind(input.expenseId, viewerId)
+    .first<{ refund_date: string | null }>();
+  if (firstRefund?.refund_date && normalized.expenseDate > firstRefund.refund_date) {
+    throw new DomainError('The expense date cannot be after one of its recorded refunds.');
+  }
   const impact = await previewExpenseImpact(db, viewerId, {
     ...input,
     excludeExpenseId: input.expenseId,
@@ -341,6 +367,9 @@ export async function deleteExpense(
   const budget = await getBudget(db, viewerId, expense.budget_id, expense.expense_date);
   if (!budget) throw new DomainError('Budget was not found.', 'NOT_FOUND');
   requireActiveBudget(budget);
+  if ((expense.refunded_minor ?? 0) > 0) {
+    throw new DomainError('Delete the recorded refunds before deleting this expense.');
+  }
   const result = await db
     .prepare('DELETE FROM expenses WHERE id = ? AND viewer_id = ?')
     .bind(expenseId, viewerId)

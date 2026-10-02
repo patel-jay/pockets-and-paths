@@ -24,6 +24,8 @@ Pockets & Paths lets one person run a recurring monthly plan alongside any numbe
 - Expenses inherit their budget’s currency, keeping entry and reporting unambiguous.
 - Expense dates place spending into the matching monthly period; entries can be edited, deleted,
   filtered, and paged without rewriting older months.
+- Received refunds can be recorded from their original expense as full or partial returns, edited
+  or removed when entered incorrectly, and reflected in net budget totals without erasing history.
 - Optional category limits show spent, remaining, and overspent percentages without forcing every category into an allocation.
 - Expenses are never blocked by an exhausted plan; the app warns first, then records reality and shows the true overspend.
 - The dashboard groups remaining and overspent balances by currency instead of presenting a misleading converted total.
@@ -91,6 +93,10 @@ Monthly plan snapshots are created through the end of the relevant calendar year
 no expenses still retains its planned amount and category limits. Yearly cash flow follows expense
 dates. Trip performance instead uses the whole trip ledger, which means an advance booking can
 appear in an earlier cash-flow year while still contributing to the trip’s complete total.
+
+Refunds are recorded only after the money is received. They reduce the original expense’s budget,
+category, and complete-trip totals, while the received date places the returned cash in yearly
+analysis. Fully refunded expenses remain visible with a zero net cost and their refund history.
 
 Overall-budget progress can exceed 100%; remaining and overspent amounts are separate, non-negative values. A category with no limit reports spending without inventing a percentage or overspending state.
 

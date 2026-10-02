@@ -186,8 +186,13 @@ export function BudgetDetailPage() {
           <strong>{formatMoney(budget.amount.minor, budget.amount.currency, locale)}</strong>
         </div>
         <div>
-          <span>Spent</span>
+          <span>{Number(budget.refunded.minor) > 0 ? 'Net spent' : 'Spent'}</span>
           <strong>{formatMoney(budget.spent.minor, budget.spent.currency, locale)}</strong>
+          {Number(budget.refunded.minor) > 0 && (
+            <small>
+              {formatMoney(budget.refunded.minor, budget.refunded.currency, locale)} refunded
+            </small>
+          )}
         </div>
         <div className={budget.isOverBudget ? 'status-over' : ''}>
           <span>{budget.isOverBudget ? 'Over budget' : 'Remaining'}</span>
@@ -342,9 +347,12 @@ export function BudgetDetailPage() {
                     <div>
                       <strong>{category.name}</strong>
                       <small>
-                        {formatMoney(category.spent.minor, category.spent.currency, locale)} spent
+                        {formatMoney(category.spent.minor, category.spent.currency, locale)}{' '}
+                        {Number(category.refunded.minor) > 0 ? 'net spent' : 'spent'}
                         {category.limit &&
                           ` of ${formatMoney(category.limit.minor, category.limit.currency, locale)}`}
+                        {Number(category.refunded.minor) > 0 &&
+                          ` · ${formatMoney(category.refunded.minor, category.refunded.currency, locale)} refunded`}
                       </small>
                       {category.hasLimit && category.progress !== null && (
                         <span

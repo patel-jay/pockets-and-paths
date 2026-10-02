@@ -216,6 +216,43 @@
   padding-top: 5px;
 }
 
+.refund-source {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(38, 112, 94, 0.16);
+  border-radius: 14px;
+  background: rgba(207, 225, 215, 0.28);
+
+  > span {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    place-items: center;
+    border-radius: 12px;
+    color: #26705e;
+    background: #dcece5;
+  }
+
+  small,
+  strong,
+  p {
+    display: block;
+  }
+
+  small,
+  p {
+    color: var(--ink-soft);
+    font-size: 11px;
+  }
+
+  p {
+    margin: 4px 0 0;
+  }
+}
+
 .form-actions--start {
   justify-content: flex-start;
   align-items: center;

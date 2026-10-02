@@ -67,6 +67,17 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId, expense }: P
         expenseDate: String(form.get('expenseDate')),
         notes: String(form.get('notes') || '').trim() || null,
       };
+      if (expense && BigInt(input.amountMinor) < BigInt(expense.refundedAmount.minor)) {
+        throw new Error(
+          `The amount cannot be lower than the ${formatMoney(
+            expense.refundedAmount.minor,
+            expense.refundedAmount.currency,
+          )} already refunded.`,
+        );
+      }
+      if (expense?.refunds.some((refund) => input.expenseDate > refund.refundDate)) {
+        throw new Error('The expense date cannot be after one of its recorded refunds.');
+      }
       const fingerprint = JSON.stringify(input);
       if (warning?.fingerprint === fingerprint) {
         mutation.mutate(input);
@@ -176,7 +187,11 @@ export function AddExpenseModal({ open, onClose, preferredBudgetId, expense }: P
                 expense ? minorToMajorInput(expense.amount.minor, expense.amount.currency) : ''
               }
             />
-            <small>The currency is set by {selectedBudget?.name}.</small>
+            <small>
+              The currency is set by {selectedBudget?.name}.
+              {expense?.refundStatus &&
+                ` At least ${formatMoney(expense.refundedAmount.minor, expense.refundedAmount.currency)} must remain recorded.`}
+            </small>
           </label>
 
           <label className="form-field">

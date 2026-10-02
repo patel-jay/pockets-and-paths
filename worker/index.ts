@@ -470,13 +470,19 @@ export default {
       const exported = await exportViewerData(env.DB, identity.viewerId);
       const date = new Date().toISOString().slice(0, 10);
       if (url.searchParams.get('format') === 'csv') {
-        return new Response(expensesCsv(exported.expenses as Record<string, unknown>[]), {
-          headers: {
-            'content-type': 'text/csv; charset=utf-8',
-            'content-disposition': `attachment; filename="pockets-and-paths-expenses-${date}.csv"`,
-            'cache-control': 'no-store',
+        return new Response(
+          expensesCsv(
+            exported.expenses as Record<string, unknown>[],
+            exported.refunds as Record<string, unknown>[],
+          ),
+          {
+            headers: {
+              'content-type': 'text/csv; charset=utf-8',
+              'content-disposition': `attachment; filename="pockets-and-paths-expenses-${date}.csv"`,
+              'cache-control': 'no-store',
+            },
           },
-        });
+        );
       }
       return new Response(JSON.stringify(exported, null, 2), {
         headers: {

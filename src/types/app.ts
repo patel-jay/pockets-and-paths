@@ -19,6 +19,7 @@ export type Category = {
   hasLimit: boolean;
   limit: Money | null;
   spent: Money;
+  refunded: Money;
   remaining: Money | null;
   overspent: Money | null;
   progress: number | null;
@@ -33,6 +34,8 @@ export type Budget = {
   currency: string;
   amount: Money;
   spent: Money;
+  grossSpent: Money;
+  refunded: Money;
   remaining: Money;
   overspent: Money;
   isOverBudget: boolean;
@@ -53,6 +56,10 @@ export type Expense = {
   id: string;
   title: string;
   amount: Money;
+  refundedAmount: Money;
+  netAmount: Money;
+  refundStatus: 'PARTIAL' | 'FULL' | null;
+  refunds: Refund[];
   expenseDate: string;
   notes: string | null;
   budgetId: string;
@@ -63,6 +70,13 @@ export type Expense = {
   categoryColor: string;
   categoryIcon: CategoryIconKey;
   periodStart: string | null;
+};
+
+export type Refund = {
+  id: string;
+  amount: Money;
+  refundDate: string;
+  notes: string | null;
 };
 
 export type ExpensePage = {
@@ -132,6 +146,8 @@ export type YearTripAnalysis = {
   endDate: string | null;
   status: 'ACTIVE' | 'ARCHIVED';
   planned: Money;
+  grossSpent: Money;
+  refunded: Money;
   spent: Money;
   remaining: Money;
   overspent: Money;

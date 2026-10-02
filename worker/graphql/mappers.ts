@@ -1,16 +1,26 @@
 import { optionalSpendingPosition, spendingPosition } from '../budget-math';
 import { getBudgetPhase, utcTodayIso } from '../../shared/budget-phase';
-import type { BudgetRow, CategoryRow, ExpenseRow, YearAnalysis } from '../types';
+import type { BudgetRow, CategoryRow, ExpenseRow, RefundRow, YearAnalysis } from '../types';
 
 export function mapMoney(minor: number, currency: string) {
   return { minor: String(minor), currency };
 }
 
 export function mapExpense(expense: ExpenseRow) {
+  const currency = expense.budget_currency ?? expense.currency;
+  const refundedMinor = expense.refunded_minor ?? 0;
   return {
     id: expense.id,
     title: expense.title,
-    amount: mapMoney(expense.converted_amount_minor, expense.budget_currency ?? expense.currency),
+    amount: mapMoney(expense.converted_amount_minor, currency),
+    refundedAmount: mapMoney(refundedMinor, currency),
+    netAmount: mapMoney(expense.converted_amount_minor - refundedMinor, currency),
+    refundStatus:
+      refundedMinor === 0
+        ? null
+        : refundedMinor >= expense.converted_amount_minor
+          ? 'FULL'
+          : 'PARTIAL',
     expenseDate: expense.expense_date,
     notes: expense.notes,
     budgetId: expense.budget_id,
@@ -24,8 +34,18 @@ export function mapExpense(expense: ExpenseRow) {
   };
 }
 
+export function mapRefund(refund: RefundRow) {
+  return {
+    id: refund.id,
+    amount: mapMoney(refund.amount_minor, refund.budget_currency ?? ''),
+    refundDate: refund.refund_date,
+    notes: refund.notes,
+  };
+}
+
 export function mapCategory(category: CategoryRow, budgetCurrency: string) {
   const spent = category.spent_minor ?? 0;
+  const refunded = category.refunded_minor ?? 0;
   const hasLimit = category.limit_minor_optional !== null;
   const position = optionalSpendingPosition(spent, category.limit_minor_optional);
   return {
@@ -34,6 +54,7 @@ export function mapCategory(category: CategoryRow, budgetCurrency: string) {
     hasLimit,
     limit: hasLimit ? mapMoney(category.limit_minor_optional!, budgetCurrency) : null,
     spent: mapMoney(spent, budgetCurrency),
+    refunded: mapMoney(refunded, budgetCurrency),
     remaining: position ? mapMoney(position.remaining, budgetCurrency) : null,
     overspent: position ? mapMoney(position.overspent, budgetCurrency) : null,
     progress: position?.progress ?? null,
@@ -45,6 +66,8 @@ export function mapCategory(category: CategoryRow, budgetCurrency: string) {
 export function mapBudget(budget: BudgetRow, today = utcTodayIso()) {
   const amount = budget.period_amount_minor ?? budget.amount_minor;
   const spent = budget.spent_minor ?? 0;
+  const grossSpent = budget.gross_spent_minor ?? spent;
+  const refunded = budget.refunded_minor ?? 0;
   const allocated = budget.allocated_minor ?? 0;
   const position = spendingPosition(spent, amount);
   const allocation = spendingPosition(allocated, amount);
@@ -55,6 +78,8 @@ export function mapBudget(budget: BudgetRow, today = utcTodayIso()) {
     currency: budget.reporting_currency,
     amount: mapMoney(amount, budget.reporting_currency),
     spent: mapMoney(spent, budget.reporting_currency),
+    grossSpent: mapMoney(grossSpent, budget.reporting_currency),
+    refunded: mapMoney(refunded, budget.reporting_currency),
     remaining: mapMoney(position.remaining, budget.reporting_currency),
     overspent: mapMoney(position.overspent, budget.reporting_currency),
     isOverBudget: position.isOver,
@@ -122,6 +147,8 @@ export function mapYearAnalysis(analysis: YearAnalysis) {
       endDate: trip.endDate,
       status: trip.status,
       planned: mapMoney(trip.plannedMinor, trip.currency),
+      grossSpent: mapMoney(trip.grossSpentMinor, trip.currency),
+      refunded: mapMoney(trip.refundedMinor, trip.currency),
       spent: mapMoney(trip.spentMinor, trip.currency),
       remaining: mapMoney(trip.remainingMinor, trip.currency),
       overspent: mapMoney(trip.overspentMinor, trip.currency),

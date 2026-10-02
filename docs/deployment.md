@@ -30,8 +30,8 @@ The demo and private environments can be deployed independently with `npm run de
 
 The Settings page provides two portable downloads:
 
-- CSV contains the expense ledger for spreadsheet use.
-- JSON contains the profile, budgets, categories, and expenses.
+- CSV contains expense and refund transactions for spreadsheet use.
+- JSON contains the profile, budgets, periods, categories, expenses, and refunds.
 
 For a restorable database backup, export D1 before a deployment or schema change:
 

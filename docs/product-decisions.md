@@ -42,6 +42,20 @@ Categories organize every expense, but not everyone wants to pre-allocate every 
 
 A budget cannot prevent a payment that happened in the real world. The app previews the effect, warns when the expense will exceed a category or the overall budget, and still allows confirmation. Progress can exceed 100%, with the overage shown as both money and percentage.
 
+## Refunds preserve the original expense
+
+A refund is recorded from the expense it reverses instead of being entered as an unrelated negative
+expense. Full refunds automatically use the remaining refundable amount; partial and repeated
+refunds are allowed up to the original cost. The expense stays visible and is marked only when it is
+partially or fully refunded. There is no “not refunded” label.
+
+Only received refunds are recorded. Expected or pending refunds do not reduce spending. Refunds can
+be edited or removed to correct mistakes, and removing enough refunded value automatically reopens
+the original expense for another refund.
+
+Budget and category performance apply the refund to the original expense. Calendar cash flow uses
+the date the refund was received, which preserves both the final cost and the real movement of money.
+
 ## Ended and archived mean different things
 
 A fixed-date budget becomes ended automatically after its end date, but it stays visible and editable so the user can review or extend it. Archiving is a manual, reversible action that removes a plan from current views and makes its history read-only until restored.

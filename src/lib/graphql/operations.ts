@@ -11,11 +11,13 @@ import type {
   AddExpenseInput,
   CreateBudgetInput,
   CreateCategoryInput,
+  CreateRefundInput,
   ExpenseImpactInput,
   ExpenseFilters,
   UpdateCategoryInput,
   UpdateBudgetInput,
   UpdateProfileInput,
+  UpdateRefundInput,
   UpdateExpenseInput,
 } from '../../types/inputs';
 import { defineOperation } from './client';
@@ -199,6 +201,12 @@ export const yearAnalysisQuery = defineOperation<{ yearAnalysis: YearAnalysis },
           planned {
             ...MoneyFields
           }
+          grossSpent {
+            ...MoneyFields
+          }
+          refunded {
+            ...MoneyFields
+          }
           spent {
             ...MoneyFields
           }
@@ -290,6 +298,36 @@ export const deleteExpenseMutation = defineOperation<{ deleteExpense: boolean },
   /* GraphQL */ `
     mutation DeleteExpense($id: ID!) {
       deleteExpense(id: $id)
+    }
+  `,
+);
+
+export const createRefundMutation = defineOperation<
+  { createRefund: { id: string } },
+  { input: CreateRefundInput }
+>(/* GraphQL */ `
+  mutation CreateRefund($input: CreateRefundInput!) {
+    createRefund(input: $input) {
+      id
+    }
+  }
+`);
+
+export const updateRefundMutation = defineOperation<
+  { updateRefund: { id: string } },
+  { input: UpdateRefundInput }
+>(/* GraphQL */ `
+  mutation UpdateRefund($input: UpdateRefundInput!) {
+    updateRefund(input: $input) {
+      id
+    }
+  }
+`);
+
+export const deleteRefundMutation = defineOperation<{ deleteRefund: boolean }, { id: string }>(
+  /* GraphQL */ `
+    mutation DeleteRefund($id: ID!) {
+      deleteRefund(id: $id)
     }
   `,
 );

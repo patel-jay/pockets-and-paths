@@ -605,10 +605,34 @@
   grid-template-columns: auto minmax(0, 1fr) auto auto;
 }
 
+.expense-row--refund {
+  position: relative;
+  min-height: 64px;
+  padding-left: 50px;
+  background: rgba(207, 225, 215, 0.19);
+
+  &::before {
+    position: absolute;
+    top: 0;
+    bottom: 50%;
+    left: 36px;
+    width: 12px;
+    border-bottom: 1px solid #a9c7ba;
+    border-left: 1px solid #a9c7ba;
+    border-radius: 0 0 0 8px;
+    content: '';
+  }
+}
+
 .expense-row__icon {
   width: 39px;
   height: 39px;
   border-radius: 12px;
+}
+
+.expense-row__icon--refund {
+  color: #26705e;
+  background: #dcece5;
 }
 
 .expense-row__copy,
@@ -630,6 +654,36 @@
   text-align: right;
 }
 
+.expense-row__amount--refund strong {
+  color: #26705e;
+}
+
+.expense-row__title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.refund-status {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #276353;
+  background: #deeee7;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.refund-status--full {
+  color: #31584f;
+  background: var(--mint);
+}
+
 .expense-row__actions {
   display: flex;
   gap: 4px;
@@ -645,12 +699,17 @@
     background: transparent;
     cursor: pointer;
 
-    &:hover {
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.36;
+    }
+
+    &:not(:disabled):hover {
       color: var(--forest);
       background: #eaf1ed;
     }
 
-    &:last-child:hover {
+    &:last-child:not(:disabled):hover {
       color: var(--danger);
       background: var(--danger-soft);
     }

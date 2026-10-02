@@ -123,10 +123,12 @@ test('registers an invite-only personal account and restores it in a new session
       formatVersion: number;
       budgets: { name: string }[];
       budgetPeriods: { period_start: string; amount_minor: number }[];
+      refunds: unknown[];
     };
     expect(exportedData).toMatchObject({
-      formatVersion: 1,
+      formatVersion: 2,
       budgets: [expect.objectContaining({ name: 'Private monthly plan' })],
+      refunds: [],
     });
     expect(exportedData.budgetPeriods).toHaveLength(12);
     expect(exportedData.budgetPeriods[0]).toMatchObject({

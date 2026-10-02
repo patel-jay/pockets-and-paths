@@ -46,6 +46,21 @@ export type UpdateExpenseInput = AddExpenseInput & {
   expenseId: string;
 };
 
+export type CreateRefundInput = {
+  expenseId: string;
+  kind: 'FULL' | 'PARTIAL';
+  amountMinor: string | null;
+  refundDate: string;
+  notes: string | null;
+};
+
+export type UpdateRefundInput = {
+  refundId: string;
+  amountMinor: string;
+  refundDate: string;
+  notes: string | null;
+};
+
 export type ExpenseFilters = {
   budgetId?: string | null;
   categoryId?: string | null;

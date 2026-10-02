@@ -25,7 +25,14 @@ export async function getCategories(
                 ELSE c.limit_minor_optional
               END AS limit_minor_optional,
               c.color, c.icon_key, c.created_at,
-              COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor
+              COALESCE(SUM(COALESCE((
+                SELECT SUM(r.amount_minor) FROM refunds r
+                WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+              ), 0)), 0) AS refunded_minor,
+              COALESCE(SUM(e.converted_amount_minor - COALESCE((
+                SELECT SUM(r.amount_minor) FROM refunds r
+                WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+              ), 0)), 0) AS spent_minor
        FROM categories c
        LEFT JOIN category_period_limits cpl
          ON cpl.category_id = c.id AND cpl.period_id = ?
@@ -127,7 +134,15 @@ export async function updateCategory(
 
   const category = await db
     .prepare(
-      `SELECT c.*, COALESCE(SUM(e.converted_amount_minor), 0) AS spent_minor
+      `SELECT c.*,
+              COALESCE(SUM(COALESCE((
+                SELECT SUM(r.amount_minor) FROM refunds r
+                WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+              ), 0)), 0) AS refunded_minor,
+              COALESCE(SUM(e.converted_amount_minor - COALESCE((
+                SELECT SUM(r.amount_minor) FROM refunds r
+                WHERE r.expense_id = e.id AND r.viewer_id = e.viewer_id
+              ), 0)), 0) AS spent_minor
        FROM categories c
        LEFT JOIN expenses e ON e.category_id = c.id AND e.viewer_id = c.viewer_id
        WHERE c.id = ? AND c.viewer_id = ?

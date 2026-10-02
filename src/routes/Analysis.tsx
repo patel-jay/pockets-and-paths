@@ -173,7 +173,7 @@ export function AnalysisPage() {
         </div>
         <p className="analysis-section-copy">
           These totals use the amount already stored in each trip’s reporting currency. Calendar
-          cash flow shows only the part paid during {selectedYear}.
+          cash flow shows payments minus refunds received during {selectedYear}.
         </p>
         {analysis.trips.length === 0 ? (
           <EmptyState
@@ -208,11 +208,19 @@ export function AnalysisPage() {
                     <dd>{formatMoney(trip.planned.minor, trip.currency, locale)}</dd>
                   </div>
                   <div>
-                    <dt>All trip spending</dt>
+                    <dt>Gross spending</dt>
+                    <dd>{formatMoney(trip.grossSpent.minor, trip.currency, locale)}</dd>
+                  </div>
+                  <div>
+                    <dt>Refunded</dt>
+                    <dd>{formatMoney(trip.refunded.minor, trip.currency, locale)}</dd>
+                  </div>
+                  <div>
+                    <dt>Net trip spending</dt>
                     <dd>{formatMoney(trip.spent.minor, trip.currency, locale)}</dd>
                   </div>
                   <div>
-                    <dt>Paid in {selectedYear}</dt>
+                    <dt>Net cash flow in {selectedYear}</dt>
                     <dd>{formatMoney(trip.cashFlowInYear.minor, trip.currency, locale)}</dd>
                   </div>
                   <div>
@@ -251,7 +259,10 @@ function CurrencyReport({
   const monthlySpent = amountForView(currency, selected, 'monthlySpent');
   const tripSpent = amountForView(currency, selected, 'tripSpent');
   const totalSpent = amountForView(currency, selected, 'totalSpent');
-  const remainingMinor = Math.max(Number(planned.minor) - Number(monthlySpent.minor), 0);
+  const remainingMinor = Math.max(
+    Number(planned.minor) - Math.max(Number(monthlySpent.minor), 0),
+    0,
+  );
   const overspentMinor = Math.max(Number(monthlySpent.minor) - Number(planned.minor), 0);
   const categories = selected?.categories ?? currency.categories;
   const visibleMonths = selected ? [selected] : currency.months;
@@ -280,7 +291,7 @@ function CurrencyReport({
           value={formatMoney(planned.minor, currency.currency, locale)}
         />
         <ReportMetric
-          label="Monthly spending"
+          label="Monthly cash flow"
           value={formatMoney(monthlySpent.minor, currency.currency, locale)}
         />
         <ReportMetric
@@ -366,7 +377,7 @@ function CurrencyReport({
             <tr>
               <th>Month</th>
               <th>Monthly plan</th>
-              <th>Monthly spent</th>
+              <th>Monthly cash flow</th>
               <th>Trip cash flow</th>
               <th>Total cash flow</th>
             </tr>
