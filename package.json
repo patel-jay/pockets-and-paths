@@ -18,11 +18,13 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "build:demo": "cross-env CLOUDFLARE_ENV=demo npm run build",
+    "build:private": "cross-env CLOUDFLARE_ENV=private npm run build",
     "db:migrate:local": "wrangler d1 migrations apply pockets-and-paths --local",
     "db:migrate:demo": "wrangler d1 migrations apply pockets-and-paths-demo --remote --env demo",
     "db:migrate:private": "wrangler d1 migrations apply pockets-and-paths-private --remote --env private",
-    "deploy:demo": "npm run build && wrangler deploy --env demo",
-    "deploy:private": "npm run build && wrangler deploy --env private"
+    "deploy:demo": "npm run build:demo && wrangler deploy",
+    "deploy:private": "npm run build:private && wrangler deploy"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
@@ -43,6 +45,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "cross-env": "^10.1.0",
     "eslint": "^10.9.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.5",
