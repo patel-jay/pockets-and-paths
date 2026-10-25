@@ -48,7 +48,7 @@
         {
           "binding": "DB",
           "database_name": "pockets-and-paths-private",
-          "database_id": "00000000-0000-4000-8000-000000000000",
+          "database_id": "d1566a51-04af-4569-af1d-b449b62c5640",
           "migrations_dir": "migrations",
         },
       ],
