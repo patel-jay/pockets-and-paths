@@ -10,11 +10,43 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
 
   const mobileNav = page.getByRole('navigation', { name: 'Mobile navigation' });
   await expect(mobileNav).toBeVisible();
-  for (const label of ['Home', 'Budgets', 'Expenses', 'Analysis', 'Settings']) {
+  for (const label of ['Home', 'Budgets', 'Expenses', 'Analysis']) {
     const box = await mobileNav.getByRole('link', { name: label, exact: true }).boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
+
+  const settingsLink = page.getByRole('link', { name: 'Settings', exact: true });
+  await expect(settingsLink).toBeVisible();
+  await expect(mobileNav.getByRole('link', { name: 'Settings' })).toHaveCount(0);
+  await expect(page.locator('.topbar .primary-button')).toBeHidden();
+  const settingsBox = await settingsLink.boundingBox();
+  expect(settingsBox?.width).toBeGreaterThanOrEqual(44);
+  expect(settingsBox?.height).toBeGreaterThanOrEqual(44);
+  expect(settingsBox?.x).toBe(260);
+  expect(settingsBox?.y).toBe(24);
+
+  const actionCenters = await mobileNav
+    .locator(':scope > a, :scope > button')
+    .evaluateAll((actions) =>
+      actions.map((action) => {
+        const box = action.getBoundingClientRect();
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      }),
+    );
+  expect(actionCenters).toHaveLength(5);
+  for (const [index, center] of actionCenters.entries()) {
+    expect(Math.abs(center.y - actionCenters[0].y)).toBeLessThanOrEqual(1);
+    if (index > 1) {
+      expect(
+        Math.abs(center.x - actionCenters[index - 1].x - (actionCenters[1].x - actionCenters[0].x)),
+      ).toBeLessThanOrEqual(1);
+    }
+  }
+
+  await mobileNav.getByRole('button', { name: 'Add expense' }).click();
+  await expect(page.getByRole('dialog', { name: 'Add an expense' })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
 
   await mobileNav.getByRole('link', { name: 'Budgets', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Budgets' })).toBeVisible();
@@ -86,7 +118,7 @@ test('keeps the complete budgeting flow usable at the minimum mobile width', asy
   }));
   expect(analysisFit.scrollWidth).toBeLessThanOrEqual(analysisFit.innerWidth);
 
-  await mobileNav.getByRole('link', { name: 'Settings', exact: true }).click();
+  await settingsLink.click();
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 

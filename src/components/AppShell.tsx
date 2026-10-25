@@ -106,6 +106,16 @@ export function AppShell() {
       </aside>
 
       <main className="main-content">
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `mobile-settings${isActive ? ' mobile-settings--active' : ''}`
+          }
+          aria-label="Settings"
+          title="Settings"
+        >
+          <Settings size={20} aria-hidden="true" />
+        </NavLink>
         <Outlet
           context={
             { openExpense, openBudget: () => setBudgetOpen(true) } satisfies AppOutletContext
@@ -141,13 +151,6 @@ export function AppShell() {
         >
           <BarChart3 size={20} />
           Analysis
-        </NavLink>
-        <NavLink
-          to="/settings"
-          className={({ isActive }) => (isActive ? 'mobile-nav__active' : '')}
-        >
-          <Settings size={20} />
-          Settings
         </NavLink>
       </nav>
 
