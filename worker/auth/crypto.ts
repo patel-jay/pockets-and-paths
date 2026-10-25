@@ -1,5 +1,8 @@
 const PASSWORD_SCHEME = 'pbkdf2-sha256';
-const PASSWORD_ITERATIONS = 600_000;
+// Cloudflare Workers currently rejects WebCrypto PBKDF2 requests above 100,000 iterations.
+// The separate server-held pepper remains required so a D1 export alone is not sufficient for
+// offline password guessing.
+const PASSWORD_ITERATIONS = 100_000;
 const SALT_BYTES = 16;
 const HASH_BYTES = 32;
 
@@ -79,7 +82,7 @@ export async function verifyPassword(
     scheme !== PASSWORD_SCHEME ||
     !Number.isSafeInteger(iterations) ||
     iterations < 100_000 ||
-    iterations > 2_000_000 ||
+    iterations > PASSWORD_ITERATIONS ||
     !saltText ||
     !expectedText
   ) {

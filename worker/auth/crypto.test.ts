@@ -11,6 +11,8 @@ describe('authentication cryptography', () => {
   it('verifies only the password and pepper used to create a hash', async () => {
     const hash = await hashPassword('a long personal password', 'development pepper');
 
+    expect(hash).toMatch(/^pbkdf2-sha256\$100000\$/);
+
     await expect(
       verifyPassword('a long personal password', hash, 'development pepper'),
     ).resolves.toBe(true);
@@ -19,6 +21,13 @@ describe('authentication cryptography', () => {
     );
     await expect(
       verifyPassword('a long personal password', hash, 'different pepper'),
+    ).resolves.toBe(false);
+    await expect(
+      verifyPassword(
+        'a long personal password',
+        hash.replace('$100000$', '$100001$'),
+        'development pepper',
+      ),
     ).resolves.toBe(false);
   });
 

@@ -6,7 +6,7 @@ This document describes the MVP’s trust boundaries; it is not a claim of produ
 
 - Browser-isolated viewer IDs use cryptographically generated UUIDs.
 - Session and demo-authentication cookies are HTTP-only, same-site, path-scoped, and secure on HTTPS.
-- Personal passwords use salted PBKDF2-HMAC-SHA-256 at 600,000 iterations plus a server-held pepper; plaintext passwords are never stored.
+- Personal passwords use salted PBKDF2-HMAC-SHA-256 at the Cloudflare Workers maximum of 100,000 iterations plus a server-held pepper; plaintext passwords are never stored.
 - Personal sessions use 256-bit random tokens, store only token digests in D1, expire after 30 days,
   and are revoked on logout. The owner can revoke other sessions, and a password change revokes
   every session except the current one.

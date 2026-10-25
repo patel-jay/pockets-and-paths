@@ -44,7 +44,17 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { 'content-type': 'application/json', ...init?.headers },
   });
-  const result = (await response.json()) as T & { error?: string };
+  const responseBody = await response.text();
+  let result: T & { error?: string };
+  try {
+    result = JSON.parse(responseBody) as T & { error?: string };
+  } catch {
+    throw new Error(
+      response.ok
+        ? 'The server returned an unexpected response.'
+        : `The server could not complete this request (HTTP ${response.status}).`,
+    );
+  }
   if (!response.ok) throw new Error(result.error ?? 'Your session could not be updated.');
   return result;
 }
